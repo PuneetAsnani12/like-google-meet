@@ -40,21 +40,22 @@ function MeetingPage({ socket }) {
       }
       if (isAudioMute) {
         audio.enabled = true;
-        this.innerHTML = '<span className="material-icons">mic</span>';
+        this.innerHTML =
+          '<span class="material-icons" style="width:100%">mic</span>';
         updateMediaSenders(audio, rtp_aud_senders);
       } else {
         audio.enabled = false;
-        this.innerHTML = '<span className="material-icons">mic_off</span>';
+        this.innerHTML =
+          '<span class="material-icons" style="width:100%">mic_off</span>';
         removeMediaSenders(rtp_aud_senders);
       }
       isAudioMute = !isAudioMute;
     };
     document.getElementById("videoCamOnOff").onclick = async function () {
       if (video_state == video_states.camera) {
-        this.innerHTML = '<span className="material-icons">videocam_off</span>';
         await videoProcess(video_states.none);
       } else {
-        this.innerHTML = '<span className="material-icons">videocam_on</span>';
+        await videoProcess(video_states.none);
         await videoProcess(video_states.camera);
       }
     };
@@ -62,6 +63,7 @@ function MeetingPage({ socket }) {
       if (video_state == video_states.screenshare) {
         await videoProcess(video_states.none);
       } else {
+        await videoProcess(video_states.none);
         await videoProcess(video_states.screenshare);
       }
     };
@@ -133,6 +135,10 @@ function MeetingPage({ socket }) {
   };
   const videoProcess = async (newVideoState) => {
     if (newVideoState == video_states.none) {
+      document.getElementById("videoCamOnOff").innerHTML =
+        '<span class="material-icons" style="width:100%">videocam_off</span>';
+      document.getElementById("btnScreenShareOnOff").innerHTML =
+        '<span class="material-icons">present_to_all</span> <div>Present Now</div>';
       video_state = newVideoState;
       removeVideoStream(rtp_vid_senders);
       return;
@@ -155,8 +161,15 @@ function MeetingPage({ socket }) {
             width: 1920,
             height: 1080,
           },
-          audio: false,
+          audio: true,
         });
+        vStream.oninactive = (e) => {
+          removeVideoStream(rtp_vid_senders);
+          document.getElementById("videoCamOnOff").innerHTML =
+            '<span class="material-icons" style="width:100%">videocam_off</span>';
+          document.getElementById("btnScreenShareOnOff").innerHTML =
+            '<span class="material-icons">present_to_all</span> <div>Present Now</div>';
+        };
       }
       if (vStream && vStream.getVideoTracks().length > 0) {
         videoCamTrack = vStream.getVideoTracks()[0];
@@ -169,6 +182,17 @@ function MeetingPage({ socket }) {
       console.log(error);
     }
     video_state = newVideoState;
+    if (newVideoState == video_states.camera) {
+      document.getElementById("btnScreenShareOnOff").innerHTML =
+        '<span class="material-icons" width="100%">present_to_all</span> <div>Present Now</div>';
+      document.getElementById("videoCamOnOff").innerHTML =
+        '<span class="material-icons" style="width:100%">videocam_on</span>';
+    } else if (newVideoState == video_states.screenshare) {
+      document.getElementById("videoCamOnOff").innerHTML =
+        '<span class="material-icons" style="width:100%">videocam_off</span>';
+      document.getElementById("btnScreenShareOnOff").innerHTML =
+        '<span class="material-icons" width="100%">close</span> <div>Stop Presenting</div>';
+    }
   };
   const addUser = (other_user_id, connId) => {
     let newDivId = document.getElementById("otherTemplate").cloneNode(true);
@@ -298,6 +322,26 @@ function MeetingPage({ socket }) {
     await SDPProcess(data, from_connid);
   };
 
+  const closeConnection = async (connId) => {
+    delete peers_connection_ids[connId];
+    if (peers_connection[connId]) {
+      peers_connection[connId].close();
+      delete peers_connection[connId];
+    }
+    if (remote_aud_stream[connId]) {
+      remote_aud_stream[connId].getTracks().forEach((t) => {
+        if (t.stop) t.stop();
+      });
+      delete remote_aud_stream[connId];
+    }
+    if (remote_vid_stream[connId]) {
+      remote_vid_stream[connId].getTracks().forEach((t) => {
+        if (t.stop) t.stop();
+      });
+      delete remote_vid_stream[connId];
+    }
+  };
+
   const _handleAppInit = (user_id, meeting_id) => {
     socket = socket.connect("/");
     const SDP_function = function (data, to_connid) {
@@ -336,6 +380,11 @@ function MeetingPage({ socket }) {
     socket.on("SDPProcess", async (data) => {
       await processClientFunction(data.message, data.from_connid);
     });
+    
+    socket.on("inform_others_about_disconnected_user", (data) => {
+      document.getElementById(data.connId).remove();
+      closeConnection(data.connId);
+    });
   };
 
   useEffect(() => {
@@ -346,6 +395,7 @@ function MeetingPage({ socket }) {
     if (!user_id || !meeting_id) {
       alert("User id or Meeting id missing");
       navigate("/");
+      return;
     }
     document.getElementById("meetingContainer").style.display = "unset";
     document.getElementById("me").append(user_id + "(Me)");
@@ -428,7 +478,9 @@ function MeetingPage({ socket }) {
               className="mic-toggle-wrap action-icon-style display-center mr-2 cursor-pointer"
               id="micMuteUnmute"
             >
-              <span className="material-icons">mic_off</span>
+              <span className="material-icons" style={{ width: "100%" }}>
+                mic_off
+              </span>
             </div>
             <div className="end-call-wrap action-icon-style display-center mr-2 cursor-pointer">
               <span className="material-icons text-danger">call</span>
@@ -437,7 +489,9 @@ function MeetingPage({ socket }) {
               className="video-toggle-wrap action-icon-style display-center cursor-pointer"
               id="videoCamOnOff"
             >
-              <span className="material-icons">videocam_off</span>
+              <span className="material-icons" style={{ width: "100%" }}>
+                videocam_off
+              </span>
             </div>
           </div>
           <div
