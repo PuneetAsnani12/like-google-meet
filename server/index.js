@@ -35,6 +35,7 @@ io.on("connection", (socket) => {
       socket.to(user.connectionId).emit("inform_others_about_me", {
         other_user_id: data.displayName,
         connId: socket.id,
+        userNumber:other_users.length+1
       });
     });
 
@@ -46,6 +47,21 @@ io.on("connection", (socket) => {
       message: data.message,
       from_connid: socket.id,
     });
+  });
+
+  socket.on("sendMessage", (message) => {
+    let mUser = userConnections.find((user) => user.connectionId === socket.id);
+    if (mUser) {
+      let meeting_id = mUser.meeting_id;
+      let from = mUser.user_id;
+      let list = userConnections.filter((p) => p.meeting_id === meeting_id);
+      list.forEach((user) => {
+        socket.to(user.connectionId).emit("showChatMessage", {
+          from,
+          message,
+        });
+      });
+    }
   });
 
   socket.on("disconnect", () => {
@@ -66,6 +82,7 @@ io.on("connection", (socket) => {
           .to(user.connectionId)
           .emit("inform_others_about_disconnected_user", {
             connId: socket.id,
+            userNumber:list.length
           });
       });
     }

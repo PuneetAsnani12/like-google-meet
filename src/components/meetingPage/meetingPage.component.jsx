@@ -1,25 +1,33 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import pImage from "../../assets/images/other.jpg";
+
+let serverProcess;
+let peers_connection_ids = {};
+let peers_connection = {};
+let remote_vid_stream = {};
+let remote_aud_stream = {};
+let audio;
+let isAudioMute = true;
+let rtp_aud_senders = {};
+let video_states = {
+  none: 0,
+  camera: 1,
+  screenshare: 2,
+};
+let video_state = video_states.none;
+let videoCamTrack;
+let local_div;
+let rtp_vid_senders = {};
+
 function MeetingPage({ socket }) {
   let params = useParams();
   let navigate = useNavigate();
-  let serverProcess;
-  let peers_connection_ids = {};
-  let peers_connection = {};
-  let remote_vid_stream = {};
-  let remote_aud_stream = {};
-  let audio;
-  let isAudioMute = true;
-  let rtp_aud_senders = {};
-  let video_states = {
-    none: 0,
-    camera: 1,
-    screenshare: 2,
-  };
-  let video_state = video_states.none;
-  let videoCamTrack;
-  let local_div;
-  let rtp_vid_senders = {};
+  let [messages, setMessages] = useState([]);
+  let messagesDIVS = useRef([]);
+  let [participants, setParticipants] = useState([]);
+  let participantsDIVS = useRef([]);
+
   const AppProcessInit = async (SDP_function, my_connid) => {
     await _init(SDP_function, my_connid);
   };
@@ -194,7 +202,7 @@ function MeetingPage({ socket }) {
         '<span class="material-icons" width="100%">close</span> <div>Stop Presenting</div>';
     }
   };
-  const addUser = (other_user_id, connId) => {
+  const addUser = (other_user_id, connId, userNum) => {
     let newDivId = document.getElementById("otherTemplate").cloneNode(true);
     newDivId.setAttribute("id", connId);
     newDivId.classList.add("other");
@@ -203,6 +211,43 @@ function MeetingPage({ socket }) {
     newDivId.getElementsByTagName("audio")[0].setAttribute("id", "a_" + connId);
     newDivId.style.display = "flex";
     document.getElementById("divUsers").append(newDivId);
+    let participantDiv = (
+      <div
+        key={"participant_" + connId}
+        id={"participant_" + connId}
+        className="in-call-wrap d-flex justify-content-between align-items-center mb-3"
+        style={{ flex: 1 }}
+      >
+        <div className="participant-img-name-wrap display-center">
+          <div className="participant-img">
+            <img
+              src={pImage}
+              alt="participant"
+              className="border border-secondary"
+              style={{
+                height: 40,
+                width: 40,
+                borderRadius: "50%",
+              }}
+            />
+          </div>
+          <div className="participant-name ml-2">{other_user_id}</div>
+        </div>
+        <div className="participant-action-wrap display-center">
+          <div className="participant-action-dot display-center cursor-pointer mr-2">
+            <span className="material-icons">more_vert</span>
+          </div>
+          <div className="participant-action-pin display-center cursor-pointer mr-2">
+            <span className="material-icons">push_pin</span>
+          </div>
+        </div>
+      </div>
+    );
+    participantsDIVS.current.push(participantDiv);
+    setParticipants(participantsDIVS.current);
+    document.querySelectorAll(".participant-count").forEach((e) => {
+      e.textContent = userNum;
+    });
   };
 
   let iceConf = {
@@ -364,14 +409,14 @@ function MeetingPage({ socket }) {
     });
 
     socket.on("inform_others_about_me", (data) => {
-      addUser(data.other_user_id, data.connId);
+      addUser(data.other_user_id, data.connId, data.userNumber);
       setNewConnection(data.connId);
     });
 
     socket.on("inform_me_about_other_user", (other_users) => {
       if (other_users) {
         other_users.forEach((user) => {
-          addUser(user.user_id, user.connectionId);
+          addUser(user.user_id, user.connectionId, other_users.length + 1);
           setNewConnection(user.connectionId);
         });
       }
@@ -380,14 +425,121 @@ function MeetingPage({ socket }) {
     socket.on("SDPProcess", async (data) => {
       await processClientFunction(data.message, data.from_connid);
     });
-    
+
     socket.on("inform_others_about_disconnected_user", (data) => {
       document.getElementById(data.connId).remove();
+      document.querySelectorAll(".participant-count").forEach((e) => {
+        e.textContent = data.userNumber;
+      });
+      document.getElementById("participant_" + data.connId).remove();
       closeConnection(data.connId);
+    });
+
+    socket.on("showChatMessage", (data) => {
+      let time = new Date();
+      let lTime = time.toLocaleString("en-us", {
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+      });
+      let messageDiv = (
+        <div key={time}>
+          <span className="font-weight-bold mr-3" style={{ color: "black" }}>
+            {data.from}
+          </span>
+          {lTime}
+          <br></br>
+          {data.message}
+        </div>
+      );
+      messagesDIVS.current.push(messageDiv);
+      setMessages([...messagesDIVS.current]);
     });
   };
 
+  const _handleSidebar = (user_id, meeting_id) => {
+    document.getElementById("btnsend").onclick = function () {
+      let msg = document.getElementById("msgBox").value;
+      if (msg) {
+        socket.emit("sendMessage", msg);
+        let time = new Date();
+        let lTime = time.toLocaleString("en-us", {
+          hour: "numeric",
+          minute: "numeric",
+          hour12: true,
+        });
+        let messageDiv = (
+          <div key={time}>
+            <span className="font-weight-bold mr-3" style={{ color: "black" }}>
+              You
+            </span>
+            {lTime}
+            <br></br>
+            {msg}
+          </div>
+        );
+        messagesDIVS.current.push(messageDiv);
+        setMessages([...messagesDIVS.current]);
+        msg = "";
+      }
+    };
+    document.getElementById("people-heading").onclick = function () {
+      document.getElementsByClassName("chat-show-wrap")[0].style.display =
+        "none";
+      document.getElementsByClassName("in-call-wrap-up")[0].style.display =
+        "flex";
+      this.classList.add("active");
+      document.getElementById("chat-heading").classList.remove("active");
+    };
+    document.getElementById("chat-heading").onclick = function () {
+      document.getElementsByClassName("chat-show-wrap")[0].style.display =
+        "flex";
+      document.getElementsByClassName("in-call-wrap-up")[0].style.display =
+        "none";
+      this.classList.add("active");
+      document.getElementById("people-heading").classList.remove("active");
+    };
+    document.getElementById("meeting-heading-cross").onclick = function () {
+      document.querySelector(".g-right-details-wrap").style.display = "none";
+    };
+    document.getElementById("participants").onclick = () => {
+      document.querySelector(".g-right-details-wrap").style.display = "block";
+      document.getElementsByClassName("chat-show-wrap")[0].style.display =
+        "none";
+      document.getElementsByClassName("in-call-wrap-up")[0].style.display =
+        "flex";
+      document.getElementById("people-heading").classList.add("active");
+      document.getElementById("chat-heading").classList.remove("active");
+    };
+    document.getElementById("chat").onclick = () => {
+      document.querySelector(".g-right-details-wrap").style.display = "block";
+      document.getElementsByClassName("chat-show-wrap")[0].style.display =
+        "flex";
+      document.getElementsByClassName("in-call-wrap-up")[0].style.display =
+        "none";
+      document.getElementById("chat-heading").classList.add("active");
+      document.getElementById("people-heading").classList.remove("active");
+    };
+  };
   useEffect(() => {
+    debugger;
+    serverProcess = undefined;
+    peers_connection_ids = {};
+    peers_connection = {};
+    remote_vid_stream = {};
+    remote_aud_stream = {};
+    audio = undefined;
+    isAudioMute = true;
+    rtp_aud_senders = {};
+    video_states = {
+      none: 0,
+      camera: 1,
+      screenshare: 2,
+    };
+    video_state = video_states.none;
+    videoCamTrack = undefined;
+    local_div = undefined;
+    rtp_vid_senders = {};
     document.title = "Google Meet";
     document.body.style.paddingTop = 0;
     let meeting_id = params.meetid;
@@ -401,6 +553,7 @@ function MeetingPage({ socket }) {
     document.getElementById("me").append(user_id + "(Me)");
     document.title = user_id;
     _handleAppInit(user_id, meeting_id);
+    _handleSidebar(user_id, meeting_id);
   }, []);
 
   return (
@@ -410,19 +563,31 @@ function MeetingPage({ socket }) {
           <div className="top-remote-video-show-wrap d-flex">
             <div
               id="meetingContainer"
-              className="w-75"
-              style={{ display: "none" }}
+              style={{
+                display: "none",
+                flexBasis: "75%",
+              }}
             >
-              <div className="call-wrap" style={{ backgroundColor: "black" }}>
+              <div
+                className="call-wrap"
+                style={{
+                  backgroundColor: "black",
+                }}
+              >
                 <div
                   className="video-wrap"
                   id="divUsers"
-                  style={{ display: "flex", flexWrap: "wrap " }}
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap ",
+                  }}
                 >
                   <div id="me" className="userBox display-center flex-column">
                     <h2
                       className="display-center"
-                      style={{ fontSize: 14 }}
+                      style={{
+                        fontSize: 14,
+                      }}
                     ></h2>
                     <div className="display-center">
                       <video autoPlay muted id="localVideoPlayer"></video>
@@ -431,19 +596,166 @@ function MeetingPage({ socket }) {
                   <div
                     id="otherTemplate"
                     className="userBox display-center flex-column"
-                    style={{ display: "none" }}
+                    style={{
+                      display: "none",
+                    }}
                   >
                     <h2
                       className="display-center"
-                      style={{ fontSize: 14 }}
+                      style={{
+                        fontSize: 14,
+                      }}
                     ></h2>
                     <div className="display-center">
                       <video autoPlay muted></video>
                       <audio
                         autoPlay
                         controls
-                        style={{ display: "none" }}
+                        style={{
+                          display: "none",
+                        }}
                       ></audio>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="g-right-details-wrap bg-light text-secondary h-100"
+              style={{
+                flexBasis: "25%",
+                zIndex: 1,
+                display: "none",
+              }}
+            >
+              <div
+                className="meeting-heading-wrap d-flex justify-content-between align-items-center pr-3 pl-3"
+                style={{ height: "10vh" }}
+              >
+                <div className="meeting-heading font-weight-bold">
+                  Meeting Details
+                </div>
+                <div
+                  id="meeting-heading-cross"
+                  className="meeting-heading-cross display-center cursor-pointer"
+                >
+                  <span className="material-icons">clear</span>
+                </div>
+              </div>
+              <div
+                className="people-chat-wrap d-flex justify-content-between align-items-center ml-3 mr-3 pr-3 pl-3"
+                style={{
+                  height: "10vh",
+                  fontSize: 14,
+                }}
+              >
+                <div
+                  id="people-heading"
+                  className="people-heading display-center cursor-pointer"
+                >
+                  <div className="people-heading-icon display-center mr-1">
+                    <span className="material-icons">people</span>
+                  </div>
+                  <div className="people-heading-text display-center">
+                    Participants (<span className="participant-count">1</span>)
+                  </div>
+                </div>
+                <div
+                  id="chat-heading"
+                  className="chat-heading d-flex justify-centent-round align-items-center cursor-pointer"
+                >
+                  <div className="chat-heading-icon display-center mr-1">
+                    <span className="material-icons">message</span>
+                  </div>
+                  <div className="chat-heading-text">Chat</div>
+                </div>
+              </div>
+              <div
+                className="in-call-chat-wrap mr-3 ml-3 pl-3 pr-3"
+                style={{
+                  fontSize: 14,
+                  height: "69vh",
+                  overflowY: "scroll",
+                }}
+              >
+                <div
+                  className="in-call-wrap-up"
+                  style={{ display: "none", flexDirection: "column" }}
+                >
+                  <div
+                    className="in-call-wrap d-flex justify-content-between align-items-center mb-3"
+                    style={{ flex: 1 }}
+                  >
+                    <div className="participant-img-name-wrap display-center">
+                      <div className="participant-img">
+                        <img
+                          src={pImage}
+                          alt="participant"
+                          className="border border-secondary"
+                          style={{
+                            height: 40,
+                            width: 40,
+                            borderRadius: "50%",
+                          }}
+                        />
+                      </div>
+                      <div className="participant-name ml-2">You</div>
+                    </div>
+                    <div className="participant-action-wrap display-center">
+                      <div className="participant-action-dot display-center cursor-pointer mr-2">
+                        <span className="material-icons">more_vert</span>
+                      </div>
+                      <div className="participant-action-pin display-center cursor-pointer mr-2">
+                        <span className="material-icons">push_pin</span>
+                      </div>
+                    </div>
+                  </div>
+                  {participants}
+                </div>
+                <div
+                  className="chat-show-wrap text-secondary flex-column justify-content-between h-100"
+                  style={{
+                    fontSize: 14,
+                    display: "flex",
+                  }}
+                >
+                  <div className="chat-message-show" id="messages">
+                    {messages}
+                  </div>
+                  <div
+                    className="chat-message-send d-flex justify-content-between align-items-center"
+                    style={{
+                      marginBottom: 35,
+                    }}
+                  >
+                    <div
+                      className="chat-message-send-input"
+                      style={{
+                        width: "85%",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        name=""
+                        className="chat-message-send-input-field w-100"
+                        id="msgBox"
+                        placeholder="Send a message to everyone"
+                        style={{
+                          border: "none",
+                          borderBottom: "1px solid teal",
+                        }}
+                      />
+                    </div>
+                    <div
+                      className="chat-message-send-action display-center"
+                      id="btnsend"
+                      style={{
+                        color: "teal",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span className="material-icons">send</span>
                     </div>
                   </div>
                 </div>
@@ -451,13 +763,18 @@ function MeetingPage({ socket }) {
             </div>
           </div>
           <div className="g-top-left bg-light text-secondary w-25 d-flex align-items-center justify-content-between pl-2 pr-2">
-            <div className="top-left-participant-wrap pt-2 cursor-pointer">
+            <div
+              id="participants"
+              className="top-left-participant-wrap pt-2 cursor-pointer"
+            >
               <div className="top-left-participant-icon">
                 <span className="material-icons">people</span>
               </div>
-              <div className="top-left-participant-count"></div>
+              <div className="top-left-participant-count participant-count">
+                1
+              </div>
             </div>
-            <div className="top-left-chat-wrap pt-2 cursor-pointer">
+            <div id="chat" className="top-left-chat-wrap pt-2 cursor-pointer">
               <span className="material-icons">message</span>
             </div>
             <div className="top-left-time-wrap"></div>
@@ -508,7 +825,10 @@ function MeetingPage({ socket }) {
 
             <div
               className="option-wrap cursor-pointer display-center"
-              style={{ height: "10vh", position: "relative" }}
+              style={{
+                height: "10vh",
+                position: "relative",
+              }}
             >
               <div className="option-icon">
                 <span className="material-icons">more_vert</span>
