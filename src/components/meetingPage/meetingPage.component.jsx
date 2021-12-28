@@ -454,33 +454,45 @@ function MeetingPage({ socket }) {
       );
       messagesDIVS.current.push(messageDiv);
       setMessages([...messagesDIVS.current]);
+      var objDiv = document.getElementById("messages");
+      objDiv.scrollTop = objDiv.scrollHeight;
     });
   };
 
+  const _handleSendMessage = function () {
+    let msg = document.getElementById("msgBox").value;
+    if (msg) {
+      socket.emit("sendMessage", msg);
+      let time = new Date();
+      let lTime = time.toLocaleString("en-us", {
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+      });
+      let messageDiv = (
+        <div key={time} style={{ marginBottom: 10 }}>
+          <span className="font-weight-bold mr-3" style={{ color: "black" }}>
+            You
+          </span>
+          {lTime}
+          <br></br>
+          {msg}
+        </div>
+      );
+      document.getElementById("msgBox").value = "";
+      messagesDIVS.current.push(messageDiv);
+      setMessages([...messagesDIVS.current]);
+      var objDiv = document.getElementById("messages");
+      objDiv.scrollTop = objDiv.scrollHeight;
+    }
+  };
   const _handleSidebar = (user_id, meeting_id) => {
     document.getElementById("btnsend").onclick = function () {
-      let msg = document.getElementById("msgBox").value;
-      if (msg) {
-        socket.emit("sendMessage", msg);
-        let time = new Date();
-        let lTime = time.toLocaleString("en-us", {
-          hour: "numeric",
-          minute: "numeric",
-          hour12: true,
-        });
-        let messageDiv = (
-          <div key={time}>
-            <span className="font-weight-bold mr-3" style={{ color: "black" }}>
-              You
-            </span>
-            {lTime}
-            <br></br>
-            {msg}
-          </div>
-        );
-        messagesDIVS.current.push(messageDiv);
-        setMessages([...messagesDIVS.current]);
-        msg = "";
+      _handleSendMessage();
+    };
+    document.getElementById("msgBox").onkeydown = (ev) => {
+      if (ev.key.toLowerCase() === "enter") {
+        _handleSendMessage();
       }
     };
     document.getElementById("people-heading").onclick = function () {
@@ -675,8 +687,6 @@ function MeetingPage({ socket }) {
                 className="in-call-chat-wrap mr-3 ml-3 pl-3 pr-3"
                 style={{
                   fontSize: 14,
-                  height: "69vh",
-                  overflowY: "scroll",
                 }}
               >
                 <div
@@ -720,13 +730,17 @@ function MeetingPage({ socket }) {
                     display: "flex",
                   }}
                 >
-                  <div className="chat-message-show" id="messages">
+                  <div
+                    className="chat-message-show"
+                    id="messages"
+                    style={{ height: "60vh", overflowY: "auto" }}
+                  >
                     {messages}
                   </div>
                   <div
                     className="chat-message-send d-flex justify-content-between align-items-center"
                     style={{
-                      marginBottom: 35,
+                      marginTop:20,
                     }}
                   >
                     <div
@@ -744,6 +758,7 @@ function MeetingPage({ socket }) {
                         style={{
                           border: "none",
                           borderBottom: "1px solid teal",
+                          background:"transparent"
                         }}
                       />
                     </div>
