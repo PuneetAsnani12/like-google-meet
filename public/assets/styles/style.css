@@ -131,18 +131,27 @@ video {
   background-color: #00808047;
   border-radius: 5px;
 }
+.top-box-show {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  background: #0009;
+  position: fixed;
+  z-index: 999;
+  justify-content: center;
+  align-items: center;
+}
 .top-box {
   background-color: rgb(14 6 6);
-  position: fixed;
   width: 30%;
   height: 30%;
-  top: 20.5%;
-  left: 35.5%;
-  display: block;
+  min-width: 300px;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
   box-shadow: 0 0 5px white;
   border-radius: 10px;
-  z-index: 999;
-  columns: white;
   border: 2px solid white;
 }
 .bottom-left {
@@ -154,7 +163,7 @@ video {
   width: 30vw;
   background-color: white;
   margin-top: -135px;
-  counter-reset: black;
+  color: black;
   border-radius: 5px;
   padding: 5px;
 }

@@ -26,6 +26,7 @@ function MeetingPage({ socket }) {
   let [messages, setMessages] = useState([]);
   let messagesDIVS = useRef([]);
   let [participants, setParticipants] = useState([]);
+  let [showLeaveDialog, setShowLeaveDialog] = useState(false);
   let participantsDIVS = useRef([]);
 
   const AppProcessInit = async (SDP_function, my_connid) => {
@@ -487,6 +488,22 @@ function MeetingPage({ socket }) {
     }
   };
   const _handleSidebar = (user_id, meeting_id) => {
+    document.querySelector("#copy_meet_details").onclick = () => {
+      try {
+        navigator.clipboard.writeText(window.location.href);
+        document.querySelector(".link-conf").style.display = "block";
+        setTimeout(() => {
+          document.querySelector(".link-conf").style.display = "none";
+        }, 1000);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    document.querySelector(".meeting_url").textContent = window.location.href;
+    document.querySelector(".end-call-wrap").onclick = () => {
+      setShowLeaveDialog(true);
+    };
+
     document.getElementById("btnsend").onclick = function () {
       _handleSendMessage();
     };
@@ -740,7 +757,7 @@ function MeetingPage({ socket }) {
                   <div
                     className="chat-message-send d-flex justify-content-between align-items-center"
                     style={{
-                      marginTop:20,
+                      marginTop: 20,
                     }}
                   >
                     <div
@@ -758,7 +775,7 @@ function MeetingPage({ socket }) {
                         style={{
                           border: "none",
                           borderBottom: "1px solid teal",
-                          background:"transparent"
+                          background: "transparent",
                         }}
                       />
                     </div>
@@ -797,6 +814,65 @@ function MeetingPage({ socket }) {
         </div>
         <div className="g-bottom bg-light m-0 d-flex justify-content-between align-items-center">
           <div className="bottom-left d-flex" style={{ height: "10vh" }}>
+            <div className="g-details border border-success mb-2">
+              <div
+                className="border-bottom"
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "space-around",
+                }}
+              >
+                <div className="g-details-heading d-flex justify-content-between align-items-center">
+                  <div className="g-details-heading-detail d-flex align-items-center cursor-pointer">
+                    <span className="material-icons">error</span>
+                    <span style={{ marginTop: -5 }}>Details</span>
+                  </div>
+                </div>
+                <div className="g-details-heading-attachment d-flex justify-content-between align-items-center ">
+                  <div className="g-details-heading-detail d-flex align-items-center cursor-pointer">
+                    <span className="material-icons">attachment</span>
+                    <span style={{ marginTop: -5 }}>Attachment</span>
+                  </div>
+                </div>
+              </div>
+              <div className="g-details-heading-show-wrap">
+                <div className="g-details-heading-show">
+                  <div style={{ fontWeight: 600, color: "gray" }}>
+                    Joining Info
+                  </div>
+                  <div
+                    className="meeting_url"
+                    style={{ padding: "5px 0" }}
+                    data-toggle="tooltip"
+                    data-placement="top"
+                  ></div>
+                  <div
+                    id="copy_meet_details"
+                    style={{ cursor: "pointer", display: "flex" }}
+                  >
+                    <span className="material-icons" style={{ fontSize: 14 }}>
+                      content_copy
+                    </span>
+                    <span className="copy_info font-weight-bold ml-2 d-flex">
+                      {" "}
+                      Copy Joining Info{" "}
+                      <span
+                        className="link-conf font-weight-bold ml-2 pl-1 pr-1"
+                        style={{
+                          display: "none",
+                          background: "aquamarine",
+                          borderRadius: 5,
+                        }}
+                      >
+                        {" "}
+                        Link Copied
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="display-center cursor-pointer meeting-details button">
               Meeting Details{" "}
               <span className="material-icons">keyboard_arrow_down</span>
@@ -848,6 +924,37 @@ function MeetingPage({ socket }) {
               <div className="option-icon">
                 <span className="material-icons">more_vert</span>
               </div>
+            </div>
+          </div>
+        </div>
+        <div
+          className="top-box-show"
+          style={showLeaveDialog ? { display: "flex" } : { display: "none" }}
+        >
+          <div className="top-box align-vertical-middle profile-dialog-show">
+            <h4
+              className="mt-3"
+              style={{ textAlign: "center", color: "white" }}
+            >
+              Leave Meeting
+            </h4>{" "}
+            <div className="call-leave-cancel-action d-flex justify-content-center align-items-center w-100">
+              <button
+                className="call-leave-action btn btn-danger mr-5"
+                onClick={() => {
+                  navigate("/");
+                }}
+              >
+                Leave
+              </button>{" "}
+              <button
+                className="call-cancel-action btn btn-secondary"
+                onClick={() => {
+                  setShowLeaveDialog(false);
+                }}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
