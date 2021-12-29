@@ -1,5 +1,7 @@
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
+const fileUpload = require("express-fileupload");
 let app = express();
 
 const PORT = process.env.PORT || 5000;
@@ -12,9 +14,40 @@ const io = require("socket.io")(server);
 
 app.use(express.static(path.join(__dirname, "build")));
 
+app.get("/downloadFile", (req, res) => {
+  let path = req.query.path;
+  res.download(path);
+});
+
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
+
+app.use(fileUpload());
+
+app.post("/attachment", (req, res) => {
+  let data = req.body;
+  let imageFile = req.files.zipfile;
+
+  let dir = "public/attachments/" + data.meeting_id + "/";
+
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir);
+  }
+
+  imageFile.mv(dir + imageFile.name, (err) => {
+    if (err)
+      res
+        .status(500)
+        .send({ status: false, msg: "couldn't upload the image file" });
+    else
+      res
+        .status(200)
+        .send({ status: true, msg: "Image file successfully uploaded" });
+  });
+});
+
+
 
 let userConnections = [];
 io.on("connection", (socket) => {
@@ -35,7 +68,7 @@ io.on("connection", (socket) => {
       socket.to(user.connectionId).emit("inform_others_about_me", {
         other_user_id: data.displayName,
         connId: socket.id,
-        userNumber:other_users.length+1
+        userNumber: other_users.length + 1,
       });
     });
 
@@ -64,6 +97,24 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("fileTransferToOthers", (data) => {
+    let { user_id, meeting_id, attachedFilePath, attachedFileName } = data;
+    let mUser = userConnections.find((user) => user.connectionId === socket.id);
+    if (mUser) {
+      let meeting_id = mUser.meeting_id;
+      let from = mUser.user_id;
+      let list = userConnections.filter((p) => p.meeting_id === meeting_id);
+      list.forEach((user) => {
+        socket.to(user.connectionId).emit("showFileMessage", {
+          user_id,
+          meeting_id,
+          attachedFilePath,
+          attachedFileName,
+        });
+      });
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("user disconnected");
     let disconnectedUser = userConnections.find(
@@ -82,7 +133,7 @@ io.on("connection", (socket) => {
           .to(user.connectionId)
           .emit("inform_others_about_disconnected_user", {
             connId: socket.id,
-            userNumber:list.length
+            userNumber: list.length,
           });
       });
     }

@@ -159,13 +159,13 @@ video {
   padding: 5px;
 }
 .g-details {
-  position: absolute;
-  width: 30vw;
+  position: fixed;
+  width: 442px;
   background-color: white;
-  margin-top: -135px;
   color: black;
   border-radius: 5px;
   padding: 5px;
+  bottom: 82px;
 }
 .g-details-heading-show {
   font-size: 14px;

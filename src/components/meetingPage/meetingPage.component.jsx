@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import pImage from "../../assets/images/other.jpg";
+import axios from "axios";
+// const download = require("downloadjs");
 
 let serverProcess;
 let peers_connection_ids = {};
@@ -27,7 +29,10 @@ function MeetingPage({ socket }) {
   let messagesDIVS = useRef([]);
   let [participants, setParticipants] = useState([]);
   let [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  let [showMeetingDetails, setShowMeetingDetails] = useState(false);
+  let [attachedAreaDiv, setAttachedAreaDiv] = useState([]);
   let participantsDIVS = useRef([]);
+  let formRef = useRef("uploadForm");
 
   const AppProcessInit = async (SDP_function, my_connid) => {
     await _init(SDP_function, my_connid);
@@ -458,6 +463,51 @@ function MeetingPage({ socket }) {
       var objDiv = document.getElementById("messages");
       objDiv.scrollTop = objDiv.scrollHeight;
     });
+
+    socket.on("showFileMessage", (data) => {
+      let time = new Date();
+      let lTime = time.toLocaleString("en-us", {
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+      });
+      let { user_id, meeting_id, attachedFilePath, attachedFileName } = data;
+
+      let newAttachedDiv = (
+        <>
+          <div
+            key={time}
+            className="left-align"
+            style={{ display: "flex", alignItems: "center" }}
+          >
+            <img
+              src={pImage}
+              alt="caller"
+              height="40px"
+              width="40px"
+              className="caller-image-circle"
+            />
+            <div style={{ fontWeight: "bold", margin: "0 5px" }}>{user_id}</div>
+            :
+            <div>
+              <a
+                href={
+                  window.location.origin +
+                  "/downloadFile?path=" +
+                  attachedFilePath
+                }
+                style={{ color: "#007bff" }}
+                download
+              >
+                {attachedFileName}{" "}
+              </a>
+            </div>
+          </div>
+          <br />
+        </>
+      );
+      setAttachedAreaDiv(newAttachedDiv);
+    });
   };
 
   const _handleSendMessage = function () {
@@ -488,6 +538,128 @@ function MeetingPage({ socket }) {
     }
   };
   const _handleSidebar = (user_id, meeting_id) => {
+    document.getElementById("customFile").onchange = function () {
+      let filename = this.value.split("\\").pop();
+      this.nextElementSibling.classList.add("selected");
+      this.nextElementSibling.innerHTML = filename;
+    };
+    document.querySelector(".share-attach").onclick = async (e) => {
+      try {
+        console.log("inside");
+        e.preventDefault();
+        let img_attr = document.querySelector("#customFile")["files"][0];
+        let formData = new FormData();
+        formData.append("zipfile", img_attr);
+        formData.append("meeting_id", meeting_id);
+        formData.append("user_id", user_id);
+        const res = await axios.post(
+          window.location.origin + "/attachment",
+          formData
+        );
+        if (!res.status) return;
+        console.log("more inside");
+        let attachFileArea = document.querySelector(".show-attach-file");
+        let attachedFileName = document
+          .querySelector("#customFile")
+          .value.split("\\")
+          .pop();
+        let attachedFilePath =
+          "./public/attachments/" + meeting_id + "/" + attachedFileName;
+        let newAttachedDiv = (
+          <>
+            <div
+              className="left-align"
+              style={{ display: "flex", alignItems: "center" }}
+            >
+              <img
+                src={pImage}
+                alt="caller"
+                height="40px"
+                width="40px"
+                className="caller-image-circle"
+              />
+              <div style={{ fontWeight: "bold", margin: "0 5px" }}>
+                {user_id}
+              </div>
+              :
+              <div
+                // style={{
+                //   color: "blue",
+                //   cursor: "pointer",
+                //   textDecoration: "underline",
+                // }}
+                // onClick={async () => {
+                //   try {
+                //     console.log("here");
+                //     let formData = new FormData();
+                //     formData.append("path", attachedFilePath);
+                //     debugger;
+                //     const res = await axios.get(
+                //       window.location.origin +
+                //         "/downloadFile?path=" +
+                //         attachedFilePath
+                //     );
+                      // const blob = await res.blob();
+                      // download(blob, 'test.pdf');
+                //     console.log("here2");
+                //     console.log(res);
+                //     debugger;
+                //   } catch (err) {
+                //     console.log(err);
+                //   }
+                // }}
+              >
+                <a
+                  href={
+                    window.location.origin +
+                    "/downloadFile?path=" +
+                    attachedFilePath
+                  }
+                  download
+                >
+                  {attachedFileName}{" "}
+                </a>
+              </div>
+            </div>
+            <br />
+          </>
+        );
+        setAttachedAreaDiv(newAttachedDiv);
+        document.querySelector(".custom-file-label").innerHTML = "";
+        socket.emit("fileTransferToOthers", {
+          user_id,
+          meeting_id,
+          attachedFilePath,
+          attachedFileName,
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    document.querySelector(".g-details-heading-attachment").onclick = () => {
+      document.querySelector(".g-details-heading-show").style.display = "none";
+      document.querySelector(
+        ".g-details-heading-show-attachment"
+      ).style.display = "flex";
+      document
+        .querySelector(".g-details-heading-attachment")
+        .classList.add("active");
+      document
+        .querySelector(".g-details-heading-detail")
+        .classList.remove("active");
+    };
+    document.querySelector(".g-details-heading-detail").onclick = () => {
+      document.querySelector(".g-details-heading-show").style.display = "flex";
+      document.querySelector(
+        ".g-details-heading-show-attachment"
+      ).style.display = "none";
+      document
+        .querySelector(".g-details-heading-detail")
+        .classList.add("active");
+      document
+        .querySelector(".g-details-heading-attachment")
+        .classList.remove("active");
+    };
     document.querySelector("#copy_meet_details").onclick = () => {
       try {
         navigator.clipboard.writeText(window.location.href);
@@ -692,7 +864,7 @@ function MeetingPage({ socket }) {
                 </div>
                 <div
                   id="chat-heading"
-                  className="chat-heading d-flex justify-centent-round align-items-center cursor-pointer"
+                  className="chat-heading d-flex justify-centent-round align-items-center cursor-pointer active"
                 >
                   <div className="chat-heading-icon display-center mr-1">
                     <span className="material-icons">message</span>
@@ -814,7 +986,14 @@ function MeetingPage({ socket }) {
         </div>
         <div className="g-bottom bg-light m-0 d-flex justify-content-between align-items-center">
           <div className="bottom-left d-flex" style={{ height: "10vh" }}>
-            <div className="g-details border border-success mb-2">
+            <div
+              className="g-details border border-success mb-2"
+              style={
+                showMeetingDetails
+                  ? { display: "flex", flexDirection: "column" }
+                  : { display: "none" }
+              }
+            >
               <div
                 className="border-bottom"
                 style={{
@@ -823,8 +1002,8 @@ function MeetingPage({ socket }) {
                   justifyContent: "space-around",
                 }}
               >
-                <div className="g-details-heading d-flex justify-content-between align-items-center">
-                  <div className="g-details-heading-detail d-flex align-items-center cursor-pointer">
+                <div className="g-details-heading d-flex justify-content-between align-items-center pb-1">
+                  <div className="g-details-heading-detail d-flex align-items-center cursor-pointer active">
                     <span className="material-icons">error</span>
                     <span style={{ marginTop: -5 }}>Details</span>
                   </div>
@@ -837,7 +1016,10 @@ function MeetingPage({ socket }) {
                 </div>
               </div>
               <div className="g-details-heading-show-wrap">
-                <div className="g-details-heading-show">
+                <div
+                  className="g-details-heading-show"
+                  style={{ display: "flex", flexDirection: "column" }}
+                >
                   <div style={{ fontWeight: 600, color: "gray" }}>
                     Joining Info
                   </div>
@@ -871,9 +1053,60 @@ function MeetingPage({ socket }) {
                     </span>
                   </div>
                 </div>
+                <div
+                  className="g-details-heading-show-attachment"
+                  style={{
+                    display: "none",
+                    position: "relative",
+                    flexDirection: "column",
+                  }}
+                >
+                  <div className="show-attach-file">{attachedAreaDiv}</div>
+                  <div
+                    className="upload-attach-file"
+                    style={{ marginBlock: 20 }}
+                  >
+                    <form
+                      encType="multipart/form-data"
+                      ref={formRef}
+                      id="uploadForm"
+                      style={{ justifyContent: "space-between" }}
+                      className="display-center"
+                    >
+                      <div className="custom-file" style={{ flexBasis: "79%" }}>
+                        <input
+                          type="file"
+                          className="custom-file-input"
+                          id="customFile"
+                          name="imagefile"
+                        />
+                        <label
+                          htmlFor="customFile"
+                          className="custom-file-label"
+                        >
+                          Choose File
+                        </label>
+                      </div>
+                      <div className="share-button-wrap">
+                        <button
+                          className="btn btn-primary btn-sm share-attach"
+                          style={{ flexBasis: "19%", padding: "6px 20px" }}
+                        >
+                          {" "}
+                          Share
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="display-center cursor-pointer meeting-details button">
+            <div
+              className="display-center cursor-pointer meeting-details button"
+              onClick={() => {
+                setShowMeetingDetails(!showMeetingDetails);
+              }}
+            >
               Meeting Details{" "}
               <span className="material-icons">keyboard_arrow_down</span>
             </div>
