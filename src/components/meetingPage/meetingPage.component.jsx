@@ -544,6 +544,7 @@ function MeetingPage({ socket }) {
       this.nextElementSibling.innerHTML = filename;
     };
     document.querySelector(".share-attach").onclick = async (e) => {
+      // fails on heroku for now
       try {
         console.log("inside");
         e.preventDefault();
