@@ -15,8 +15,8 @@ const io = require("socket.io")(server);
 app.use(express.static(path.join(__dirname, "build")));
 
 app.get("/downloadFile", (req, res) => {
-  let path = req.query.path;
-  res.download(path);
+  let filePath = req.query.path;
+  res.download(path.join(__dirname, filePath));
 });
 
 app.get("*", (req, res) => {
@@ -30,12 +30,17 @@ app.post("/attachment", (req, res) => {
   let imageFile = req.files.zipfile;
 
   let dir = "public/attachments/" + data.meeting_id + "/";
+  let systemPath = path.join(__dirname, dir);
 
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir);
+  if (!fs.existsSync(path.join(__dirname, "public")))
+    fs.mkdirSync(path.join(__dirname, "public"));
+  if (!fs.existsSync(path.join(__dirname, "public/attachments")))
+    fs.mkdirSync(path.join(__dirname, "public/attachments"));
+  if (!fs.existsSync(systemPath)) {
+    fs.mkdirSync(systemPath);
   }
 
-  imageFile.mv(dir + imageFile.name, (err) => {
+  imageFile.mv(path.join(systemPath, imageFile.name), (err) => {
     if (err)
       res
         .status(500)
@@ -46,8 +51,6 @@ app.post("/attachment", (req, res) => {
         .send({ status: true, msg: "Image file successfully uploaded" });
   });
 });
-
-
 
 let userConnections = [];
 io.on("connection", (socket) => {

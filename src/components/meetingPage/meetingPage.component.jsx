@@ -565,7 +565,7 @@ function MeetingPage({ socket }) {
           .value.split("\\")
           .pop();
         let attachedFilePath =
-          "./public/attachments/" + meeting_id + "/" + attachedFileName;
+          "/public/attachments/" + meeting_id + "/" + attachedFileName;
         let newAttachedDiv = (
           <>
             <div
