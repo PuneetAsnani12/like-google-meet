@@ -544,9 +544,7 @@ function MeetingPage({ socket }) {
       this.nextElementSibling.innerHTML = filename;
     };
     document.querySelector(".share-attach").onclick = async (e) => {
-      // fails on heroku for now
       try {
-        console.log("inside");
         e.preventDefault();
         let img_attr = document.querySelector("#customFile")["files"][0];
         let formData = new FormData();
@@ -558,7 +556,6 @@ function MeetingPage({ socket }) {
           formData
         );
         if (!res.status) return;
-        console.log("more inside");
         let attachFileArea = document.querySelector(".show-attach-file");
         let attachedFileName = document
           .querySelector("#customFile")
