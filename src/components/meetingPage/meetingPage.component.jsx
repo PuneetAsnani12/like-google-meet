@@ -21,6 +21,8 @@ let video_state = video_states.none;
 let videoCamTrack;
 let local_div;
 let rtp_vid_senders = {};
+let mediaRecorder;
+let chunks = [];
 
 function MeetingPage({ socket }) {
   let params = useParams();
@@ -32,6 +34,7 @@ function MeetingPage({ socket }) {
   let [showMeetingDetails, setShowMeetingDetails] = useState(false);
   let [attachedAreaDiv, setAttachedAreaDiv] = useState([]);
   let participantsDIVS = useRef([]);
+  let [showRecordingButton, setShowRecordingButton] = useState(false);
   let formRef = useRef("uploadForm");
 
   const AppProcessInit = async (SDP_function, my_connid) => {
@@ -537,7 +540,76 @@ function MeetingPage({ socket }) {
       objDiv.scrollTop = objDiv.scrollHeight;
     }
   };
+
+  const captureScreen = async (
+    mediaConstraints = { video: true, audio: true }
+  ) => {
+    const screenStream = await navigator.mediaDevices.getDisplayMedia(
+      mediaConstraints
+    );
+    return screenStream;
+  };
+
+  const captureAudio = async (
+    mediaConstraints = { video: false, audio: true }
+  ) => {
+    const audioStream = await navigator.mediaDevices.getUserMedia(
+      mediaConstraints
+    );
+    return audioStream;
+  };
+
+  const startRecording = async () => {
+    chunks = [];
+    const screenStream = await captureScreen();
+    const audioStream = await captureAudio();
+    const stream = new MediaStream([
+      ...screenStream.getTracks(),
+      ...audioStream.getTracks(),
+    ]);
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.start();
+    mediaRecorder.onstop = function () {
+      let clipName = `New Recording ${new Date()}`;
+      stream.getTracks().forEach((track) => track.stop());
+      const blob = new Blob(chunks, {
+        type: "video/webm",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = clipName + ".webm";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, [100]);
+    };
+    mediaRecorder.ondataavailable = function (e) {
+      chunks.push(e.data);
+    };
+  };
+
+  const stopRecording = () => {
+    mediaRecorder.stop();
+  };
   const _handleSidebar = (user_id, meeting_id) => {
+    document.querySelector("#RecordingStartStop").onclick = function () {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        this.classList = [];
+        this.classList.add("start-record", "btn-dark", "text-danger", "btn");
+        this.textContent = "Start Recording";
+        stopRecording();
+        return;
+      }
+      this.classList = [];
+      this.classList.add("stop-record", "btn-danger", "text-dark", "btn");
+      this.textContent = "Stop Recording";
+      startRecording();
+    };
+
     document.getElementById("customFile").onchange = function () {
       let filename = this.value.split("\\").pop();
       this.nextElementSibling.classList.add("selected");
@@ -581,31 +653,31 @@ function MeetingPage({ socket }) {
               </div>
               :
               <div
-                // style={{
-                //   color: "blue",
-                //   cursor: "pointer",
-                //   textDecoration: "underline",
-                // }}
-                // onClick={async () => {
-                //   try {
-                //     console.log("here");
-                //     let formData = new FormData();
-                //     formData.append("path", attachedFilePath);
-                //     debugger;
-                //     const res = await axios.get(
-                //       window.location.origin +
-                //         "/downloadFile?path=" +
-                //         attachedFilePath
-                //     );
-                      // const blob = await res.blob();
-                      // download(blob, 'test.pdf');
-                //     console.log("here2");
-                //     console.log(res);
-                //     debugger;
-                //   } catch (err) {
-                //     console.log(err);
-                //   }
-                // }}
+              // style={{
+              //   color: "blue",
+              //   cursor: "pointer",
+              //   textDecoration: "underline",
+              // }}
+              // onClick={async () => {
+              //   try {
+              //     console.log("here");
+              //     let formData = new FormData();
+              //     formData.append("path", attachedFilePath);
+              //     debugger;
+              //     const res = await axios.get(
+              //       window.location.origin +
+              //         "/downloadFile?path=" +
+              //         attachedFilePath
+              //     );
+              // const blob = await res.blob();
+              // download(blob, 'test.pdf');
+              //     console.log("here2");
+              //     console.log(res);
+              //     debugger;
+              //   } catch (err) {
+              //     console.log(err);
+              //   }
+              // }}
               >
                 <a
                   href={
@@ -1151,7 +1223,30 @@ function MeetingPage({ socket }) {
                 height: "10vh",
                 position: "relative",
               }}
+              onClick={() => {
+                setShowRecordingButton(!showRecordingButton);
+              }}
             >
+              <div
+                className="recording-show"
+                style={
+                  showRecordingButton
+                    ? {
+                        display: "flex",
+                        position: "fixed",
+                        bottom: 110,
+                        right: 0,
+                      }
+                    : { display: "none" }
+                }
+              >
+                <button
+                  id="RecordingStartStop"
+                  className="btn btn-dark text-danger start-record"
+                >
+                  Start Recording
+                </button>
+              </div>
               <div className="option-icon">
                 <span className="material-icons">more_vert</span>
               </div>
