@@ -1,25 +1,25 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Google Meet",
+  "name": "Like Google Meet",
+  "display": "minimal-ui",
+  "theme_color": "#1a73e8",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "//ssl.gstatic.com//meet/icons/logo_meet_2020q4_48dp_2556d3f5eb3d58f0410e20b82a3ba462.png",
+      "type": "image/png",
+      "sizes": "48x48"
     },
     {
-      "src": "logo192.png",
+      "src": "//ssl.gstatic.com//meet/icons/logo_meet_2020q4_192dp_b4a028512588b877ddf99c66c78bbc44.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.png",
+      "src": "//ssl.gstatic.com//meet/icons/logo_meet_2020q4_512dp_4ac4a724a69a35b5b08c6a711c9717c2.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "background_color": "#1a73e8",
+  "start_url": "."
 }

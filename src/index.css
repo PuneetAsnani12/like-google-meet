@@ -1,12 +1,11 @@
 body {
-  font-family: 'Epilogue', sans-serif;
+  font-family: "Open Sans", sans-serif;
   font-size: large;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  padding-top: 3.5rem;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }

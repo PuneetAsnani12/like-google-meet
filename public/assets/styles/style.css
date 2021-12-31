@@ -13,14 +13,14 @@ nav {
 .navbar-brand {
   font-size: 27px;
   padding-left: 10px;
-  font-family: "Lato";
   vertical-align: middle;
 }
 .nav-item a {
-  color: gray !important;
+  color: #5f6368 !important;
   font-size: 16px;
   padding: 0 10px;
-  font-weight: 600;
+  font-weight: 500;
+  padding-top: 5px;
 }
 .display-center {
   display: flex;
@@ -29,6 +29,7 @@ nav {
 }
 li.nav-item {
   padding: 0 10px;
+  padding-top: 5px;
 }
 .signin-image {
   height: 390px;
@@ -48,6 +49,23 @@ input:focus {
 }
 .jumbotron {
   background-color: white;
+  flex-direction: row;
+}
+.sign-in {
+  align-self: center;
+}
+@media screen and (max-width: 960px) {
+  .jumbotron {
+    flex-direction: column;
+  }
+  .container-2 {
+    margin-top: 50px;
+  }
+}
+@media screen and (max-width: 992px) {
+  .sign-in {
+    align-self: flex-start;
+  }
 }
 
 /*.......... index page........... */
@@ -170,4 +188,45 @@ video {
 .g-details-heading-show {
   font-size: 14px;
   padding-left: 10px;
+}
+.button-blue-filled {
+  background-color: rgb(26, 115, 232);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.button-blue-filled:hover {
+  background-color: rgb(20, 92, 185);
+  box-shadow: 0 0 5px black;
+}
+.button-blue-outline {
+  border-color: rgb(214, 215, 216);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  padding: 15px 20px;
+  line-height: 1;
+  color: rgb(26, 115, 232);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background: white;
+}
+.button-blue-outline:hover {
+  background: rgba(206, 222, 247, 0.452);
+  border-color: rgb(26, 115, 232);
+}
+a {
+  white-space: nowrap;
+}
+.container-1 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.learn-more:hover {
+  text-decoration-line: underline;
 }

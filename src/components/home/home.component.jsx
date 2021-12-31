@@ -1,5 +1,5 @@
 // import logo from './logo.svg';
-import logo from "../../assets/images/google-meet-icon.png";
+import logo from "../../assets/images/meet-logo.svg";
 import signInImage from "../../assets/images/google-meet-people.jpg";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 const Home = () => {
   useEffect(() => {
     document.title = "Create or Join Meeting";
-    document.body.style.paddingTop = "3.5rem";
+    // document.body.style.paddingTop = "3.5rem";
   }, []);
   let navigate = useNavigate();
 
@@ -24,10 +24,9 @@ const Home = () => {
   };
   return (
     <>
-      <nav className="navbar-expand-md fixed-top">
-        <img src={logo} alt="logo" className="logo" />
-        <a href="http://wwww.google.com" className="navbar-brand text-dark">
-          Google Meet
+      <nav className="navbar-expand-lg">
+        <a href={window.location.origin} className="navbar-brand text-dark">
+          <img src={logo} alt="logo" className="logo" />
         </a>
         <button
           className="navbar-toggler"
@@ -37,6 +36,7 @@ const Home = () => {
           aria-controls="navbarSupportedContent"
           aria-expanded="false"
           aria-label="Toggle navigation"
+          style={{ maxHeight: 40, marginTop: 11 }}
         >
           <span className="navbar-toggler-icon"></span>
         </button>
@@ -44,7 +44,7 @@ const Home = () => {
           <ul className="navbar-nav mr-auto">
             <li className="nav-item">
               <a href="#" className="nav-link">
-                At a glance
+                Overview
               </a>
             </li>
             <li className="nav-item">
@@ -54,19 +54,19 @@ const Home = () => {
             </li>
             <li className="nav-item">
               <a href="#" className="nav-link">
-                Plan and Price
+                Plans {`&`} Pricing{" "}
               </a>
             </li>
           </ul>
           <ul className="navbar-nav mr-0">
-            <li className="nav-item sign-in display-center">
+            <li className="nav-item sign-in">
               <a href="#" className="nav-link">
                 Sign in
               </a>
             </li>
             <li className="nav-item">
               <button
-                className="btn btn-outline-secondary btn-lg text-info font-weight-bold"
+                className="btn button-blue-outline"
                 onClick={_handleJoinMeeting}
               >
                 Join a meeting
@@ -75,7 +75,8 @@ const Home = () => {
             <li className="nav-item">
               <button
                 onClick={_handleStartMeeting}
-                className="btn btn-lg btn-info text-light font-weight-bold"
+                className="btn btn-lg text-light button-blue-filled"
+                style={{ padding: "15px 20px" }}
               >
                 Start a meeting
               </button>
@@ -86,25 +87,25 @@ const Home = () => {
 
       <main>
         <div className="jumbotron h-100 d-flex">
-          <div className="container w-50">
-            <h1 style={{ fontSize: "3rem" }}>
+          <div className="container container-1" style={{ flexBasis: "50%" }}>
+            <h1 style={{ fontSize: 44 }}>
               {" "}
-              Premium video meeting. Now it is available for free to everyone.
+              Premium video meetings. Now free for everyone.
             </h1>
-            <p style={{ fontSize: 20 }}>
+            <p style={{ fontSize: 18,color:"#777" ,marginTop:25 }}>
               {" "}
-              We're resdesigning the Google Meet service for secure business
-              meetings and making it free for everyone to use.
+              We re-engineered the service we built for secure business
+              meetings, Google Meet, to make it free and available for all.
             </p>
-            <ul className="display-center justify-content-start">
+            <ul className="display-center justify-content-start" style={{marginTop:60}}>
               <li style={{ padding: 0 }}>
                 <button
                   onClick={_handleStartMeeting}
-                  className="btn btn-lg text-light font-weight-bold display-center"
-                  style={{ backgroundColor: "#01796b" }}
+                  className="btn text-light button-blue-filled display-center"
+                  style={{ padding: "10px 15px" }}
                 >
                   <span className="material-icons mr-2">video_call</span>
-                  New Meeting
+                  New meeting
                 </button>
               </li>
               <li className="pl-3">
@@ -124,12 +125,20 @@ const Home = () => {
               <li
                 onClick={_handleJoinMeetingLi}
                 className="text-dark ml-4 font-weight-bold cursor-pointer"
+                style={{ padding: "10px 15px" }}
               >
                 Join
               </li>
             </ul>
           </div>
-          <div className="container w-50">
+          <div
+            className="container container-2"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              flexBasis: "50%",
+            }}
+          >
             <img src={signInImage} alt="sign-in" className="signin-image" />
           </div>
         </div>
@@ -138,7 +147,7 @@ const Home = () => {
         <h6>
           {" "}
           Learn more about{" "}
-          <span className="learn-more text-info">Google Meet</span>.
+          <span className="learn-more" style={{color:"rgb(26, 115, 232)",cursor:"pointer"}}>Google Meet</span>.
         </h6>
       </footer>
     </>

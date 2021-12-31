@@ -335,6 +335,7 @@ function MeetingPage({ socket }) {
         updateMediaSenders(videoCamTrack, rtp_vid_senders);
       }
     }
+    updateMediaSenders(audio, rtp_aud_senders);
     return connection;
   };
 
