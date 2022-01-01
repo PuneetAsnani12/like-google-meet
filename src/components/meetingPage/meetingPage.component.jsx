@@ -406,7 +406,7 @@ function MeetingPage({ socket }) {
       });
     };
     socket.on("connect", () => {
-      alert("connected to client side");
+      // alert("connected to client side");
       if (socket.connected) {
         AppProcessInit(SDP_function, socket.id);
         if (user_id != "" && meeting_id != "") {

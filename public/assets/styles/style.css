@@ -100,9 +100,6 @@ input:focus {
 }
 .cursor-pointer:hover {
   cursor: pointer;
-  padding: 5px;
-  background-color: rgb(226, 225, 225);
-  border-radius: 5px;
 }
 .top-left-participant-count {
   position: absolute;
@@ -229,4 +226,12 @@ a {
 }
 .learn-more:hover {
   text-decoration-line: underline;
+}
+.join-btn {
+  background-color: "transparent";
+  color: #1a73e8;
+}
+.join-btn:hover {
+  background-color: #dae8fc3a;
+  color: #174ea6;
 }

@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 const Home = () => {
   useEffect(() => {
-    document.title = "Create or Join Meeting";
+    document.title = "Create or Join Meetings - Like Google Meet";
     // document.body.style.paddingTop = "3.5rem";
   }, []);
   let navigate = useNavigate();
@@ -92,12 +92,15 @@ const Home = () => {
               {" "}
               Premium video meetings. Now free for everyone.
             </h1>
-            <p style={{ fontSize: 18,color:"#777" ,marginTop:25 }}>
+            <p style={{ fontSize: 18, color: "#777", marginTop: 25 }}>
               {" "}
               We re-engineered the service we built for secure business
-              meetings, Google Meet, to make it free and available for all.
+              meetings, Like Google Meet, to make it free and available for all.
             </p>
-            <ul className="display-center justify-content-start" style={{marginTop:60}}>
+            <ul
+              className="display-center justify-content-start"
+              style={{ marginTop: 60 }}
+            >
               <li style={{ padding: 0 }}>
                 <button
                   onClick={_handleStartMeeting}
@@ -124,8 +127,10 @@ const Home = () => {
               </li>
               <li
                 onClick={_handleJoinMeetingLi}
-                className="text-dark ml-4 font-weight-bold cursor-pointer"
-                style={{ padding: "10px 15px" }}
+                className="ml-4 font-weight-bold cursor-pointer join-btn"
+                style={{
+                  padding: "12px 17px",
+                }}
               >
                 Join
               </li>
@@ -147,7 +152,13 @@ const Home = () => {
         <h6>
           {" "}
           Learn more about{" "}
-          <span className="learn-more" style={{color:"rgb(26, 115, 232)",cursor:"pointer"}}>Google Meet</span>.
+          <span
+            className="learn-more"
+            style={{ color: "rgb(26, 115, 232)", cursor: "pointer" }}
+          >
+            Google Meet
+          </span>
+          .
         </h6>
       </footer>
     </>
