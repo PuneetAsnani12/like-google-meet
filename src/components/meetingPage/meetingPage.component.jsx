@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import pImage from "../../assets/images/other.jpg";
+import avatar from "../../assets/images/avatar.svg";
 import axios from "axios";
 // const download = require("downloadjs");
 
@@ -58,12 +59,12 @@ function MeetingPage({ socket }) {
       if (isAudioMute) {
         audio.enabled = true;
         this.innerHTML =
-          '<span class="material-icons" style="width:100%">mic</span>';
+          '<span class="material-icons display-center" style="width:100%">mic</span>';
         updateMediaSenders(audio, rtp_aud_senders);
       } else {
         audio.enabled = false;
         this.innerHTML =
-          '<span class="material-icons" style="width:100%">mic_off</span>';
+          '<span class="material-icons display-center" style="width:100%">mic_off</span>';
         removeMediaSenders(rtp_aud_senders);
       }
       isAudioMute = !isAudioMute;
@@ -153,9 +154,9 @@ function MeetingPage({ socket }) {
   const videoProcess = async (newVideoState) => {
     if (newVideoState == video_states.none) {
       document.getElementById("videoCamOnOff").innerHTML =
-        '<span class="material-icons" style="width:100%">videocam_off</span>';
+        '<span class="material-icons display-center" style="width:100%">videocam_off</span>';
       document.getElementById("btnScreenShareOnOff").innerHTML =
-        '<span class="material-icons">present_to_all</span> <div>Present Now</div>';
+        '<span class="material-icons display-center">present_to_all</span> <div>Present Now</div>';
       video_state = newVideoState;
       removeVideoStream(rtp_vid_senders);
       return;
@@ -183,9 +184,9 @@ function MeetingPage({ socket }) {
         vStream.oninactive = (e) => {
           removeVideoStream(rtp_vid_senders);
           document.getElementById("videoCamOnOff").innerHTML =
-            '<span class="material-icons" style="width:100%">videocam_off</span>';
+            '<span class="material-icons display-center" style="width:100%">videocam_off</span>';
           document.getElementById("btnScreenShareOnOff").innerHTML =
-            '<span class="material-icons">present_to_all</span> <div>Present Now</div>';
+            '<span class="material-icons display-center">present_to_all</span> <div>Present Now</div>';
         };
       }
       if (vStream && vStream.getVideoTracks().length > 0) {
@@ -193,29 +194,32 @@ function MeetingPage({ socket }) {
         if (videoCamTrack) {
           local_div.srcObject = new MediaStream([videoCamTrack]);
           updateMediaSenders(videoCamTrack, rtp_vid_senders);
+        } else {
+          newVideoState = video_states.none;
         }
       }
     } catch (error) {
       console.log(error);
+      newVideoState = video_states.none;
     }
     video_state = newVideoState;
     if (newVideoState == video_states.camera) {
       document.getElementById("btnScreenShareOnOff").innerHTML =
-        '<span class="material-icons" width="100%">present_to_all</span> <div>Present Now</div>';
+        '<span class="material-icons display-center" width="100%">present_to_all</span> <div>Present Now</div>';
       document.getElementById("videoCamOnOff").innerHTML =
-        '<span class="material-icons" style="width:100%">videocam_on</span>';
+        '<span class="material-icons display-center" style="width:100%">videocam</span>';
     } else if (newVideoState == video_states.screenshare) {
       document.getElementById("videoCamOnOff").innerHTML =
-        '<span class="material-icons" style="width:100%">videocam_off</span>';
+        '<span class="material-icons display-center" style="width:100%">videocam_off</span>';
       document.getElementById("btnScreenShareOnOff").innerHTML =
-        '<span class="material-icons" width="100%">close</span> <div>Stop Presenting</div>';
+        '<span class="material-icons display-center" width="100%">close</span> <div>Stop Presenting</div>';
     }
   };
   const addUser = (other_user_id, connId, userNum) => {
     let newDivId = document.getElementById("otherTemplate").cloneNode(true);
     newDivId.setAttribute("id", connId);
     newDivId.classList.add("other");
-    newDivId.firstChild.textContent = other_user_id;
+    newDivId.lastChild.textContent = other_user_id;
     newDivId.getElementsByTagName("video")[0].setAttribute("id", "v_" + connId);
     newDivId.getElementsByTagName("audio")[0].setAttribute("id", "a_" + connId);
     newDivId.style.display = "flex";
@@ -253,10 +257,11 @@ function MeetingPage({ socket }) {
       </div>
     );
     participantsDIVS.current.push(participantDiv);
-    setParticipants(participantsDIVS.current);
+    setParticipants([...participantsDIVS.current]);
     document.querySelectorAll(".participant-count").forEach((e) => {
       e.textContent = userNum;
     });
+    setNewConnection(connId);
   };
 
   let iceConf = {
@@ -279,6 +284,19 @@ function MeetingPage({ socket }) {
       connId
     );
   };
+  const hackandplay = (id) => {
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then(function (stream) {
+        var x = document.getElementById(id);
+        x.play();
+
+        // stop microphone stream acquired by getUserMedia
+        stream.getTracks().forEach(function (track) {
+          track.stop();
+        });
+      });
+  };
   const setConnection = async (connId) => {
     let connection = new RTCPeerConnection(iceConf);
 
@@ -294,6 +312,9 @@ function MeetingPage({ socket }) {
         );
       }
     };
+    peers_connection_ids[connId] = connId;
+    peers_connection[connId] = connection;
+
     connection.ontrack = function (event) {
       if (!remote_vid_stream[connId]) {
         remote_vid_stream[connId] = new MediaStream();
@@ -307,25 +328,26 @@ function MeetingPage({ socket }) {
           .forEach((t) => remote_vid_stream[connId].removeTrack(t));
         remote_vid_stream[connId].addTrack(event.track);
 
-        let remoteVideoPlayer = document.getElementById("v_" + connId);
+        let remoteVideoPlayer = document.getElementById("v_" + `${connId}`);
         remoteVideoPlayer.srcObject = null;
         remoteVideoPlayer.srcObject = remote_vid_stream[connId];
-        remoteVideoPlayer.load();
+        remoteVideoPlayer.muted = true;
+        document.getElementById("v_" + `${connId}`).load();
       } else if (event.track.kind === "audio") {
         remote_aud_stream[connId]
           .getAudioTracks()
           .forEach((t) => remote_aud_stream[connId].removeTrack(t));
         remote_aud_stream[connId].addTrack(event.track);
 
-        let remoteAudioPlayer = document.getElementById("a_" + connId);
+        let remoteAudioPlayer = document.getElementById("a_" + `${connId}`);
         remoteAudioPlayer.srcObject = null;
         remoteAudioPlayer.srcObject = remote_aud_stream[connId];
+        remoteAudioPlayer.muted = true;
         remoteAudioPlayer.load();
+        remoteAudioPlayer.muted = false;
+        hackandplay("a_" + `${connId}`);
       }
     };
-
-    peers_connection_ids[connId] = connId;
-    peers_connection[connId] = connection;
 
     if (
       video_state == video_states.camera ||
@@ -335,7 +357,9 @@ function MeetingPage({ socket }) {
         updateMediaSenders(videoCamTrack, rtp_vid_senders);
       }
     }
-    updateMediaSenders(audio, rtp_aud_senders);
+    if (audio) {
+      updateMediaSenders(audio, rtp_aud_senders);
+    }
     return connection;
   };
 
@@ -420,14 +444,12 @@ function MeetingPage({ socket }) {
 
     socket.on("inform_others_about_me", (data) => {
       addUser(data.other_user_id, data.connId, data.userNumber);
-      setNewConnection(data.connId);
     });
 
     socket.on("inform_me_about_other_user", (other_users) => {
       if (other_users) {
         other_users.forEach((user) => {
           addUser(user.user_id, user.connectionId, other_users.length + 1);
-          setNewConnection(user.connectionId);
         });
       }
     });
@@ -561,36 +583,45 @@ function MeetingPage({ socket }) {
   };
 
   const startRecording = async () => {
-    chunks = [];
-    const screenStream = await captureScreen();
-    const audioStream = await captureAudio();
-    const stream = new MediaStream([
-      ...screenStream.getTracks(),
-      ...audioStream.getTracks(),
-    ]);
-    mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.start();
-    mediaRecorder.onstop = function () {
-      let clipName = `New Recording ${new Date()}`;
-      stream.getTracks().forEach((track) => track.stop());
-      const blob = new Blob(chunks, {
-        type: "video/webm",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = url;
-      a.download = clipName + ".webm";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }, [100]);
-    };
-    mediaRecorder.ondataavailable = function (e) {
-      chunks.push(e.data);
-    };
+    try {
+      chunks = [];
+      const screenStream = await captureScreen();
+      const audioStream = await captureAudio();
+      const stream = new MediaStream([
+        ...screenStream.getTracks(),
+        ...audioStream.getTracks(),
+      ]);
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.start();
+      mediaRecorder.onstop = function () {
+        let clipName = `New Recording ${new Date()}`;
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(chunks, {
+          type: "video/webm",
+        });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+        a.download = clipName + ".webm";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, [100]);
+      };
+      mediaRecorder.ondataavailable = function (e) {
+        chunks.push(e.data);
+      };
+    } catch (err) {
+      document.querySelector("#RecordingStartStop").classList = [];
+      document
+        .querySelector("#RecordingStartStop")
+        .classList.add("start-record", "btn-dark", "text-danger", "btn");
+      document.querySelector("#RecordingStartStop").textContent =
+        "Start Recording";
+    }
   };
 
   const stopRecording = () => {
@@ -715,18 +746,14 @@ function MeetingPage({ socket }) {
       document
         .querySelector(".g-details-heading-attachment")
         .classList.add("active");
-      document
-        .querySelector(".g-details-heading-detail")
-        .classList.remove("active");
+      document.querySelector(".g-details-heading").classList.remove("active");
     };
-    document.querySelector(".g-details-heading-detail").onclick = () => {
+    document.querySelector(".g-details-heading").onclick = () => {
       document.querySelector(".g-details-heading-show").style.display = "flex";
       document.querySelector(
         ".g-details-heading-show-attachment"
       ).style.display = "none";
-      document
-        .querySelector(".g-details-heading-detail")
-        .classList.add("active");
+      document.querySelector(".g-details-heading").classList.add("active");
       document
         .querySelector(".g-details-heading-attachment")
         .classList.remove("active");
@@ -822,8 +849,8 @@ function MeetingPage({ socket }) {
       return;
     }
     document.getElementById("meetingContainer").style.display = "unset";
-    document.getElementById("me").append(user_id + "(Me)");
-    document.title = user_id;
+    document.getElementById("me").lastChild.textContent = "You";
+    document.title = "Meet - " + meeting_id;
     _handleAppInit(user_id, meeting_id);
     _handleSidebar(user_id, meeting_id);
   }, []);
@@ -840,12 +867,7 @@ function MeetingPage({ socket }) {
                 flexBasis: "75%",
               }}
             >
-              <div
-                className="call-wrap"
-                style={{
-                  backgroundColor: "black",
-                }}
-              >
+              <div className="call-wrap">
                 <div
                   className="video-wrap"
                   id="divUsers"
@@ -854,40 +876,54 @@ function MeetingPage({ socket }) {
                     flexWrap: "wrap ",
                   }}
                 >
-                  <div id="me" className="userBox display-center flex-column">
-                    <h2
-                      className="display-center"
-                      style={{
-                        fontSize: 14,
-                      }}
-                    ></h2>
+                  <div
+                    id="me"
+                    className="userBox display-center flex-column"
+                    style={{ position: "relative" }}
+                  >
                     <div className="display-center">
                       <video autoPlay muted id="localVideoPlayer"></video>
                     </div>
+                    <h2
+                      style={{
+                        fontSize: 14,
+                        position: "absolute",
+                        bottom: 0,
+                        left: "20px",
+                      }}
+                    ></h2>
                   </div>
                   <div
                     id="otherTemplate"
                     className="userBox display-center flex-column"
                     style={{
                       display: "none",
+                      position: "relative",
                     }}
                   >
-                    <h2
-                      className="display-center"
-                      style={{
-                        fontSize: 14,
-                      }}
-                    ></h2>
                     <div className="display-center">
-                      <video autoPlay muted></video>
+                      <video
+                        autoPlay={true}
+                        muted={true}
+                        controls={false}
+                      ></video>
                       <audio
-                        autoPlay
-                        controls
+                        autoPlay={true}
+                        muted={true}
+                        controls={false}
                         style={{
                           display: "none",
                         }}
                       ></audio>
                     </div>
+                    <h2
+                      style={{
+                        fontSize: 14,
+                        position: "absolute",
+                        bottom: 0,
+                        left: "20px",
+                      }}
+                    ></h2>
                   </div>
                 </div>
               </div>
@@ -910,7 +946,7 @@ function MeetingPage({ socket }) {
                 </div>
                 <div
                   id="meeting-heading-cross"
-                  className="meeting-heading-cross display-center cursor-pointer"
+                  className="meeting-heading-cross display-center cursor-pointer bg-color-grey p-2"
                 >
                   <span className="material-icons">clear</span>
                 </div>
@@ -924,7 +960,7 @@ function MeetingPage({ socket }) {
               >
                 <div
                   id="people-heading"
-                  className="people-heading display-center cursor-pointer"
+                  className="people-heading display-center cursor-pointer p-1"
                 >
                   <div className="people-heading-icon display-center mr-1">
                     <span className="material-icons">people</span>
@@ -935,7 +971,7 @@ function MeetingPage({ socket }) {
                 </div>
                 <div
                   id="chat-heading"
-                  className="chat-heading d-flex justify-centent-round align-items-center cursor-pointer active"
+                  className="chat-heading d-flex justify-centent-round align-items-center cursor-pointer active p-1"
                 >
                   <div className="chat-heading-icon display-center mr-1">
                     <span className="material-icons">message</span>
@@ -1037,10 +1073,10 @@ function MeetingPage({ socket }) {
               </div>
             </div>
           </div>
-          <div className="g-top-left bg-light text-secondary w-25 d-flex align-items-center justify-content-between pl-2 pr-2">
+          <div className="g-top-left bg-light text-secondary d-flex align-items-center justify-content-between pl-2 pr-2">
             <div
               id="participants"
-              className="top-left-participant-wrap pt-2 cursor-pointer"
+              className="top-left-participant-wrap pt-2 cursor-pointer bg-color-grey p-1"
             >
               <div className="top-left-participant-icon">
                 <span className="material-icons">people</span>
@@ -1049,16 +1085,19 @@ function MeetingPage({ socket }) {
                 1
               </div>
             </div>
-            <div id="chat" className="top-left-chat-wrap pt-2 cursor-pointer">
+            <div
+              id="chat"
+              className="top-left-chat-wrap pt-2 cursor-pointer bg-color-grey p-1"
+            >
               <span className="material-icons">message</span>
             </div>
             <div className="top-left-time-wrap"></div>
           </div>
         </div>
         <div className="g-bottom bg-light m-0 d-flex justify-content-between align-items-center">
-          <div className="bottom-left d-flex" style={{ height: "10vh" }}>
+          <div className="bottom-left d-flex" style={{ height: "75px" }}>
             <div
-              className="g-details border border-success mb-2"
+              className="g-details border mb-2"
               style={
                 showMeetingDetails
                   ? { display: "flex", flexDirection: "column" }
@@ -1073,36 +1112,48 @@ function MeetingPage({ socket }) {
                   justifyContent: "space-around",
                 }}
               >
-                <div className="g-details-heading d-flex justify-content-between align-items-center pb-1">
-                  <div className="g-details-heading-detail d-flex align-items-center cursor-pointer active">
+                <div
+                  className="g-details-heading d-flex justify-content-center align-items-center p-1 active cursor-pointer"
+                  style={{ flex: 1 }}
+                >
+                  <div className="g-details-heading-detail d-flex align-items-center ">
                     <span className="material-icons">error</span>
-                    <span style={{ marginTop: -5 }}>Details</span>
+                    <span>Details</span>
                   </div>
                 </div>
-                <div className="g-details-heading-attachment d-flex justify-content-between align-items-center ">
-                  <div className="g-details-heading-detail d-flex align-items-center cursor-pointer">
+                <div
+                  className="g-details-heading-attachment d-flex justify-content-center align-items-center p-1 cursor-pointer"
+                  style={{ flex: 1 }}
+                >
+                  <div className="g-details-heading-detail d-flex align-items-center">
                     <span className="material-icons">attachment</span>
-                    <span style={{ marginTop: -5 }}>Attachment</span>
+                    <span>Attachment</span>
                   </div>
                 </div>
               </div>
               <div className="g-details-heading-show-wrap">
                 <div
-                  className="g-details-heading-show"
+                  className="g-details-heading-show p-2"
                   style={{ display: "flex", flexDirection: "column" }}
                 >
                   <div style={{ fontWeight: 600, color: "gray" }}>
                     Joining Info
                   </div>
-                  <div
+                  <a
+                    href={window.location.href}
                     className="meeting_url"
                     style={{ padding: "5px 0" }}
                     data-toggle="tooltip"
                     data-placement="top"
-                  ></div>
+                    target="_blank"
+                  ></a>
                   <div
                     id="copy_meet_details"
-                    style={{ cursor: "pointer", display: "flex" }}
+                    style={{
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
                   >
                     <span className="material-icons" style={{ fontSize: 14 }}>
                       content_copy
@@ -1173,7 +1224,7 @@ function MeetingPage({ socket }) {
               </div>
             </div>
             <div
-              className="display-center cursor-pointer meeting-details button"
+              className="display-center cursor-pointer meeting-details button bg-color-grey p-3"
               onClick={() => {
                 setShowMeetingDetails(!showMeetingDetails);
               }}
@@ -1187,21 +1238,27 @@ function MeetingPage({ socket }) {
             style={{ height: "10vh" }}
           >
             <div
-              className="mic-toggle-wrap action-icon-style display-center mr-2 cursor-pointer"
+              className="mic-toggle-wrap action-icon-style display-center mr-2 cursor-pointer bg-color-grey"
               id="micMuteUnmute"
             >
-              <span className="material-icons" style={{ width: "100%" }}>
+              <span
+                className="material-icons display-center"
+                style={{ width: "100%" }}
+              >
                 mic_off
               </span>
             </div>
-            <div className="end-call-wrap action-icon-style display-center mr-2 cursor-pointer">
+            <div className="end-call-wrap action-icon-style display-center mr-2 cursor-pointer bg-color-grey">
               <span className="material-icons text-danger">call</span>
             </div>
             <div
-              className="video-toggle-wrap action-icon-style display-center cursor-pointer"
+              className="video-toggle-wrap action-icon-style display-center cursor-pointer bg-color-grey"
               id="videoCamOnOff"
             >
-              <span className="material-icons" style={{ width: "100%" }}>
+              <span
+                className="material-icons display-center"
+                style={{ width: "100%" }}
+              >
                 videocam_off
               </span>
             </div>
@@ -1212,14 +1269,16 @@ function MeetingPage({ socket }) {
           >
             <div
               id="btnScreenShareOnOff"
-              className="present-now-wrap d-flex justify-content-center flex-column align-items-center mr-5 cursor-pointer"
+              className="present-now-wrap d-flex justify-content-center flex-column align-items-center mr-5 cursor-pointer bg-color-grey p-2"
             >
-              <span className="material-icons">present_to_all</span>
+              <span className="material-icons display-center">
+                present_to_all
+              </span>
               <div>Present Now</div>
             </div>
 
             <div
-              className="option-wrap cursor-pointer display-center"
+              className="option-wrap cursor-pointer display-center bg-color-grey"
               style={{
                 height: "10vh",
                 position: "relative",

@@ -16,7 +16,7 @@ const Home = () => {
   };
   const _handleJoinMeetingLi = () => {
     let join_value = document.getElementById("enter_code").value;
-    navigate(`/${join_value}`);
+    if (join_value) navigate(`/${join_value}`);
   };
   const _handleStartMeeting = () => {
     var random_value = Math.floor(Math.random() * 100000000);
@@ -113,6 +113,7 @@ const Home = () => {
               </li>
               <li className="pl-3">
                 <button
+                  id="enter_code_button"
                   className="btn btn-outline-secondary btn-lg text-dark font-weight-bold display-center"
                   style={{ backgroundColor: "#fff" }}
                 >
@@ -121,6 +122,11 @@ const Home = () => {
                     type="text"
                     placeholder="Enter a code"
                     style={{ border: "none" }}
+                    onKeyUp={(e) => {
+                      if (e.key.toLowerCase() === "enter") {
+                        _handleJoinMeetingLi();
+                      }
+                    }}
                     id="enter_code"
                   />
                 </button>
