@@ -141,6 +141,13 @@ function MeetingPage({ socket }) {
       removeMediaSenders(rtp_vid_senders);
     }
   };
+  const removeAudioStream = (rtp_senders) => {
+    if (audio) {
+      audio.stop();
+      audio = undefined;
+      removeMediaSenders(rtp_senders);
+    }
+  };
   const getDevice = async () => {
     let deviceID = null;
     let gotDevices = await navigator.mediaDevices.enumerateDevices();
@@ -168,16 +175,16 @@ function MeetingPage({ socket }) {
         vStream = await navigator.mediaDevices.getUserMedia({
           video: {
             deviceId: deviceID ? { exact: deviceID } : undefined,
-            width: 1920,
-            height: 1080,
+            width: 640,
+            height: 360,
           },
           audio: false,
         });
       } else if (newVideoState == video_states.screenshare) {
         vStream = await navigator.mediaDevices.getDisplayMedia({
           video: {
-            width: 1920,
-            height: 1080,
+            width: 640,
+            height: 360,
           },
           audio: true,
         });
@@ -821,7 +828,6 @@ function MeetingPage({ socket }) {
     };
   };
   useEffect(() => {
-    debugger;
     serverProcess = undefined;
     peers_connection_ids = {};
     peers_connection = {};
@@ -853,6 +859,12 @@ function MeetingPage({ socket }) {
     document.title = "Meet - " + meeting_id;
     _handleAppInit(user_id, meeting_id);
     _handleSidebar(user_id, meeting_id);
+    return () => {
+      socket.removeAllListeners();
+      socket.disconnect(true);
+      removeAudioStream(rtp_aud_senders);
+      removeVideoStream(rtp_vid_senders);
+    };
   }, []);
 
   return (
