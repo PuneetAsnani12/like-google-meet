@@ -15,13 +15,26 @@ nav {
   padding-left: 10px;
   vertical-align: middle;
 }
-.nav-item a {
-  color: #5f6368 !important;
+.nav-item a,
+.nav-item div {
+  color: #5f6368;
+  white-space: nowrap;
   font-size: 16px;
-  padding: 0 10px;
+  padding-block: 10px;
   font-weight: 500;
-  padding-top: 5px;
+  max-height: 48px;
+  min-height: 48px;
+  align-items: center;
+  display: flex;
 }
+.nav-item a:hover,
+.nav-item div:hover {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  color: #202124;
+  outline: 0;
+}
+
 .display-center {
   display: flex;
   justify-content: center;
@@ -245,4 +258,3 @@ a {
   width: 100vw;
   flex-direction: column;
 }
-

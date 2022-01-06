@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import pImage from "../../assets/images/other.jpg";
 import avatar from "../../assets/images/avatar.svg";
 import axios from "axios";
+import { useSelector } from "react-redux";
 // const download = require("downloadjs");
 
 let serverProcess;
@@ -36,6 +37,7 @@ function MeetingPage({ socket }) {
   let [attachedAreaDiv, setAttachedAreaDiv] = useState([]);
   let participantsDIVS = useRef([]);
   let [showRecordingButton, setShowRecordingButton] = useState(false);
+  const { user } = useSelector((state) => state);
   let formRef = useRef("uploadForm");
 
   const AppProcessInit = async (SDP_function, my_connid) => {
@@ -828,6 +830,10 @@ function MeetingPage({ socket }) {
     };
   };
   useEffect(() => {
+    if (!user.currentUser) {
+      navigate("/");
+      return;
+    }
     serverProcess = undefined;
     peers_connection_ids = {};
     peers_connection = {};
@@ -848,9 +854,10 @@ function MeetingPage({ socket }) {
     document.title = "Google Meet";
     document.body.style.paddingTop = 0;
     let meeting_id = params.meetid;
-    let user_id = window.prompt("Enter you username");
+    // let user_id = window.prompt("Enter you username");
+    let user_id = user.currentUser.displayName;
     if (!user_id || !meeting_id) {
-      alert("User id or Meeting id missing");
+      // alert("User id or Meeting id missing");
       navigate("/");
       return;
     }

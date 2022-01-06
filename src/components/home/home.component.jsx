@@ -1,29 +1,61 @@
-// import logo from './logo.svg';
 import logo from "../../assets/images/meet-logo.svg";
 import signInImage from "../../assets/images/google-meet-people.jpg";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  googleSignInStart,
+  signOutStart,
+} from "../../redux/user/users.actions";
+import Loader from "../Loader/loader.component";
+import toast, { Toaster } from "react-hot-toast";
 
 const Home = () => {
+  const { user } = useSelector((state) => state);
+  const dispatch = useDispatch();
   useEffect(() => {
     document.title = "Create or Join Meetings - Like Google Meet";
-    // document.body.style.paddingTop = "3.5rem";
   }, []);
+  let authMessage = user.message ? user.message : null;
+  useEffect(() => {
+    if (authMessage) {
+      notify(authMessage);
+    }
+  }, [authMessage]);
   let navigate = useNavigate();
 
+  const notify = (authMessage) => {
+    toast.dismiss();
+    if (authMessage.includes("Successful")) {
+      toast.success(`${authMessage}`);
+    } else if (authMessage.includes("wrong")) {
+      toast.error(authMessage);
+    }
+  };
+  
   const _handleJoinMeeting = () => {
     document.getElementById("enter_code").focus();
   };
   const _handleJoinMeetingLi = () => {
-    let join_value = document.getElementById("enter_code").value;
-    if (join_value) navigate(`/${join_value}`);
+    if (user.currentUser) {
+      let join_value = document.getElementById("enter_code").value;
+      if (join_value) navigate(`/${join_value}`);
+    } else {
+      dispatch(googleSignInStart());
+    }
   };
   const _handleStartMeeting = () => {
-    var random_value = Math.floor(Math.random() * 100000000);
-    navigate(`/${random_value}`);
+    if (user.currentUser) {
+      var random_value = Math.floor(Math.random() * 100000000);
+      navigate(`/${random_value}`);
+    } else {
+      dispatch(googleSignInStart());
+    }
   };
   return (
     <>
+      {user.loading ? <Loader /> : null}
+      <Toaster></Toaster>
       <nav className="navbar-expand-lg">
         <a href={window.location.origin} className="navbar-brand text-dark">
           <img src={logo} alt="logo" className="logo" />
@@ -60,9 +92,17 @@ const Home = () => {
           </ul>
           <ul className="navbar-nav mr-0">
             <li className="nav-item sign-in">
-              <a href="#" className="nav-link">
-                Sign in
-              </a>
+              <div
+                className="nav-link"
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  if (user.currentUser) {
+                    dispatch(signOutStart(user.currentUser));
+                  } else dispatch(googleSignInStart());
+                }}
+              >
+                {user.currentUser ? "Sign Out" : "Sign In"}
+              </div>
             </li>
             <li className="nav-item">
               <button
