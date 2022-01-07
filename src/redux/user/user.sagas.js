@@ -33,7 +33,16 @@ function* getSnapshotFromUserAuth(userAuth, additionalData, flag = 0) {
       additionalData
     );
     const userSnapshot = yield getDoc(userRef);
-    yield put(signInSuccess({ id: userSnapshot.id, ...userSnapshot.data() }));
+    let photoURL = "";
+    try {
+      photoURL = userAuth.photoURL;
+      photoURL = photoURL.replace("s96-c", "s200-c", true);
+    } catch (err) {
+      console.log(err);
+    }
+    yield put(
+      signInSuccess({ id: userSnapshot.id, photoURL, ...userSnapshot.data() })
+    );
   } catch (error) {
     console.log(error);
     yield put(signInFailure(error));

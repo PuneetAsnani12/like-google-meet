@@ -137,6 +137,7 @@ function MeetingPage({ socket }) {
   };
   const removeVideoStream = (rtp_vid_senders) => {
     if (videoCamTrack) {
+      socket.emit("inform_others_about_my_video_disconnection", params.meetid);
       videoCamTrack.stop();
       videoCamTrack = null;
       local_div.srcObject = null;
@@ -162,6 +163,8 @@ function MeetingPage({ socket }) {
   };
   const videoProcess = async (newVideoState) => {
     if (newVideoState == video_states.none) {
+      document.getElementById("myImg").style.display = "flex";
+      document.getElementById("localVideoPlayerDIV").style.display = "none";
       document.getElementById("videoCamOnOff").innerHTML =
         '<span class="material-icons display-center" style="width:100%">videocam_off</span>';
       document.getElementById("btnScreenShareOnOff").innerHTML =
@@ -191,6 +194,8 @@ function MeetingPage({ socket }) {
           audio: true,
         });
         vStream.oninactive = (e) => {
+          document.getElementById("myImg").style.display = "flex";
+          document.getElementById("localVideoPlayerDIV").style.display = "none";
           removeVideoStream(rtp_vid_senders);
           document.getElementById("videoCamOnOff").innerHTML =
             '<span class="material-icons display-center" style="width:100%">videocam_off</span>';
@@ -217,20 +222,26 @@ function MeetingPage({ socket }) {
         '<span class="material-icons display-center" width="100%">present_to_all</span> <div>Present Now</div>';
       document.getElementById("videoCamOnOff").innerHTML =
         '<span class="material-icons display-center" style="width:100%">videocam</span>';
+      document.getElementById("myImg").style.display = "none";
+      document.getElementById("localVideoPlayerDIV").style.display = "flex";
     } else if (newVideoState == video_states.screenshare) {
       document.getElementById("videoCamOnOff").innerHTML =
         '<span class="material-icons display-center" style="width:100%">videocam_off</span>';
       document.getElementById("btnScreenShareOnOff").innerHTML =
         '<span class="material-icons display-center" width="100%">close</span> <div>Stop Presenting</div>';
+      document.getElementById("myImg").style.display = "none";
+      document.getElementById("localVideoPlayerDIV").style.display = "flex";
     }
   };
-  const addUser = (other_user_id, connId, userNum) => {
+  const addUser = (other_user_id, connId, userNum, photoURL) => {
     let newDivId = document.getElementById("otherTemplate").cloneNode(true);
     newDivId.setAttribute("id", connId);
     newDivId.classList.add("other");
     newDivId.lastChild.textContent = other_user_id;
     newDivId.getElementsByTagName("video")[0].setAttribute("id", "v_" + connId);
     newDivId.getElementsByTagName("audio")[0].setAttribute("id", "a_" + connId);
+    newDivId.querySelector("#userImageDIV").setAttribute("id", "img_" + connId);
+    newDivId.querySelector("#userImage").setAttribute("src", photoURL);
     newDivId.style.display = "flex";
     document.getElementById("divUsers").append(newDivId);
     let participantDiv = (
@@ -342,6 +353,10 @@ function MeetingPage({ socket }) {
         remoteVideoPlayer.srcObject = remote_vid_stream[connId];
         remoteVideoPlayer.muted = true;
         document.getElementById("v_" + `${connId}`).load();
+        document.getElementById(
+          "v_" + `${connId}`
+        ).parentElement.style.display = "flex";
+        document.getElementById("img_" + `${connId}`).style.display = "none";
       } else if (event.track.kind === "audio") {
         remote_aud_stream[connId]
           .getAudioTracks()
@@ -445,6 +460,7 @@ function MeetingPage({ socket }) {
         if (user_id != "" && meeting_id != "") {
           socket.emit("userconnect", {
             displayName: user_id,
+            photoURL: user.currentUser ? user.currentUser.photoURL : "",
             meeting_id,
           });
         }
@@ -452,13 +468,31 @@ function MeetingPage({ socket }) {
     });
 
     socket.on("inform_others_about_me", (data) => {
-      addUser(data.other_user_id, data.connId, data.userNumber);
+      addUser(data.other_user_id, data.connId, data.userNumber, data.photoURL);
+    });
+
+    socket.on("someones_video_disconnected", (data) => {
+      let remoteVideoPlayer = document.getElementById(
+        "v_" + `${data.disconnectedUser}`
+      );
+      remoteVideoPlayer.srcObject = null;
+      remoteVideoPlayer.muted = true;
+      remoteVideoPlayer.load();
+      remoteVideoPlayer.parentElement.style.display = "none";
+      document.getElementById(
+        "img_" + `${data.disconnectedUser}`
+      ).style.display = "flex";
     });
 
     socket.on("inform_me_about_other_user", (other_users) => {
       if (other_users) {
         other_users.forEach((user) => {
-          addUser(user.user_id, user.connectionId, other_users.length + 1);
+          addUser(
+            user.user_id,
+            user.connectionId,
+            other_users.length + 1,
+            user.photoURL
+          );
         });
       }
     });
@@ -884,24 +918,44 @@ function MeetingPage({ socket }) {
               style={{
                 display: "none",
                 flexBasis: "75%",
+                minWidth: 320,
               }}
             >
               <div className="call-wrap">
                 <div
                   className="video-wrap"
                   id="divUsers"
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap ",
-                  }}
                 >
                   <div
                     id="me"
-                    className="userBox display-center flex-column"
+                    className="userBox display-center"
                     style={{ position: "relative" }}
                   >
-                    <div className="display-center">
-                      <video autoPlay muted id="localVideoPlayer"></video>
+                    <div className="display-center" id="myImg">
+                      <div style={{ maxWidth: "160px", width: "30%" }}>
+                        <img
+                          src={
+                            user.currentUser ? user.currentUser.photoURL : ""
+                          }
+                          alt="myImage"
+                          className="myImg"
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    </div>
+                    <div
+                      className="display-center"
+                      id="localVideoPlayerDIV"
+                      style={{ display: "none" }}
+                    >
+                      <video
+                        autoPlay
+                        muted
+                        id="localVideoPlayer"
+                        style={{ width: "100%" }}
+                      ></video>
                     </div>
                     <h2
                       style={{
@@ -914,17 +968,18 @@ function MeetingPage({ socket }) {
                   </div>
                   <div
                     id="otherTemplate"
-                    className="userBox display-center flex-column"
+                    className="userBox display-center"
                     style={{
                       display: "none",
                       position: "relative",
                     }}
                   >
-                    <div className="display-center">
+                    <div className="display-center" style={{ display: "none" }}>
                       <video
                         autoPlay={true}
                         muted={true}
                         controls={false}
+                        style={{ width: "100%" }}
                       ></video>
                       <audio
                         autoPlay={true}
@@ -934,6 +989,23 @@ function MeetingPage({ socket }) {
                           display: "none",
                         }}
                       ></audio>
+                    </div>
+                    <div
+                      className="display-center"
+                      id="userImageDIV"
+                      style={{ flex: 1 }}
+                    >
+                      <div style={{ maxWidth: "160px", width: "30%" }}>
+                        <img
+                          src=""
+                          alt="userImage"
+                          id="userImage"
+                          loading="lazy"
+                          decoding="async"
+                          className="myImg"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
                     </div>
                     <h2
                       style={{

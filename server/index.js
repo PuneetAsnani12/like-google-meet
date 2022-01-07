@@ -60,17 +60,24 @@ io.on("connection", (socket) => {
     let other_users = userConnections.filter((user) => {
       return user.meeting_id === data.meeting_id;
     });
-    console.log("userconnect", data.displayName, data.meeting_id);
+    console.log(
+      "userconnect",
+      data.displayName,
+      data.meeting_id,
+      data.photoURL
+    );
     userConnections.push({
       connectionId: socket.id,
       user_id: data.displayName,
       meeting_id: data.meeting_id,
+      photoURL: data.photoURL,
     });
 
     other_users.forEach((user) => {
       socket.to(user.connectionId).emit("inform_others_about_me", {
         other_user_id: data.displayName,
         connId: socket.id,
+        photoURL: data.photoURL,
         userNumber: other_users.length + 1,
       });
     });
@@ -78,6 +85,17 @@ io.on("connection", (socket) => {
     socket.emit("inform_me_about_other_user", other_users);
   });
 
+  socket.on("inform_others_about_my_video_disconnection", (meeting_id) => {
+    let other_users = userConnections.filter((user) => {
+      return user.meeting_id === meeting_id;
+    });
+    other_users.forEach((user) => {
+      socket.to(user.connectionId).emit("someones_video_disconnected", {
+        disconnectedUser: socket.id,
+      });
+    });
+  });
+  
   socket.on("SDPProcess", (data) => {
     socket.to(data.to_connid).emit("SDPProcess", {
       message: data.message,
