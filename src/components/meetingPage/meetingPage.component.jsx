@@ -1,9 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import pImage from "../../assets/images/other.jpg";
-import avatar from "../../assets/images/avatar.svg";
 import axios from "axios";
+import { getUploadedFileLink } from "../../firebase/firebase.utils"
 import { useSelector } from "react-redux";
+import Loader from "../Loader/loader.component";
+import toast, { Toaster } from "react-hot-toast";
+
 // const download = require("downloadjs");
 
 let serverProcess;
@@ -37,6 +40,7 @@ function MeetingPage({ socket }) {
   let [attachedAreaDiv, setAttachedAreaDiv] = useState([]);
   let participantsDIVS = useRef([]);
   let [showRecordingButton, setShowRecordingButton] = useState(false);
+  let [showLoader, setShowLoader] = useState(false);
   const { user } = useSelector((state) => state);
   let formRef = useRef("uploadForm");
 
@@ -540,7 +544,7 @@ function MeetingPage({ socket }) {
         minute: "numeric",
         hour12: true,
       });
-      let { user_id, meeting_id, attachedFilePath, attachedFileName } = data;
+      let { user_id, meeting_id, attachedFilePath, attachedFileName, uploadedLink } = data;
 
       let newAttachedDiv = (
         <>
@@ -559,17 +563,30 @@ function MeetingPage({ socket }) {
             <div style={{ fontWeight: "bold", margin: "0 5px" }}>{user_id}</div>
             :
             <div>
-              <a
-                href={
-                  window.location.origin +
-                  "/downloadFile?path=" +
-                  attachedFilePath
-                }
-                style={{ color: "#007bff" }}
-                download
+              <div
+                className="hover-link"
+                style={{ color: "rgb(26, 115, 232)", cursor: "pointer" }}
+                onClick={async () => {
+                  setShowLoader(true)
+                  var xhr = new XMLHttpRequest();
+                  xhr.responseType = 'blob';
+                  xhr.onload = function () {
+                    var a = document.createElement('a');
+                    a.href = window.URL.createObjectURL(xhr.response);
+                    a.download = attachedFileName;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setShowLoader(false)
+                  };
+                  xhr.open('GET', uploadedLink);
+                  xhr.send();
+                }}
+
               >
                 {attachedFileName}{" "}
-              </a>
+              </div>
             </div>
           </div>
           <br />
@@ -693,21 +710,44 @@ function MeetingPage({ socket }) {
     document.querySelector(".share-attach").onclick = async (e) => {
       try {
         e.preventDefault();
-        let img_attr = document.querySelector("#customFile")["files"][0];
-        let formData = new FormData();
-        formData.append("zipfile", img_attr);
-        formData.append("meeting_id", meeting_id);
-        formData.append("user_id", user_id);
-        const res = await axios.post(
-          window.location.origin + "/attachment",
-          formData
-        );
-        if (!res.status) return;
-        let attachFileArea = document.querySelector(".show-attach-file");
+        let fileToUpload = document.querySelector("#customFile")["files"][0];
+        if (!fileToUpload) {
+          toast('Please select a file !',
+            {
+              icon: '🤷‍♀️',
+              style: {
+                borderRadius: '10px',
+                background: '#fff',
+                color: '#000',
+              },
+            }
+          );
+          return
+        }
+        setShowLoader(true)
+        // let formData = new FormData();
+        // formData.append("zipfile", img_attr);
+        // formData.append("meeting_id", meeting_id);
+        // formData.append("user_id", user_id);
+        // const res = await axios.post(
+        //   window.location.origin + "/attachment",
+        //   formData
+        // );
         let attachedFileName = document
           .querySelector("#customFile")
           .value.split("\\")
           .pop();
+        let uploadedLink = ""
+        try {
+          uploadedLink = await getUploadedFileLink(fileToUpload, meeting_id, attachedFileName)
+        } catch (error) {
+          toast.error(error.message);
+          setShowLoader(false)
+          return
+        }
+        // if (!res.status) return;
+        let attachFileArea = document.querySelector(".show-attach-file");
+
         let attachedFilePath =
           "/public/attachments/" + meeting_id + "/" + attachedFileName;
         let newAttachedDiv = (
@@ -754,16 +794,30 @@ function MeetingPage({ socket }) {
               //   }
               // }}
               >
-                <a
-                  href={
-                    window.location.origin +
-                    "/downloadFile?path=" +
-                    attachedFilePath
-                  }
-                  download
+                <div
+                  className="hover-link"
+                  style={{ color: "rgb(26, 115, 232)", cursor: "pointer" }}
+                  onClick={async () => {
+                    setShowLoader(true)
+                    var xhr = new XMLHttpRequest();
+                    xhr.responseType = 'blob';
+                    xhr.onload = function () {
+                      var a = document.createElement('a');
+                      a.href = window.URL.createObjectURL(xhr.response);
+                      a.download = attachedFileName;
+                      a.style.display = 'none';
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      setShowLoader(false)
+                    };
+                    xhr.open('GET', uploadedLink);
+                    xhr.send();
+                  }}
+
                 >
                   {attachedFileName}{" "}
-                </a>
+                </div>
               </div>
             </div>
             <br />
@@ -776,9 +830,13 @@ function MeetingPage({ socket }) {
           meeting_id,
           attachedFilePath,
           attachedFileName,
+          uploadedLink,
         });
+        document.querySelector("#customFile").value = null;
+        setShowLoader(false)
       } catch (err) {
         console.log(err);
+        setShowLoader(false)
       }
     };
     document.querySelector(".g-details-heading-attachment").onclick = () => {
@@ -910,6 +968,8 @@ function MeetingPage({ socket }) {
 
   return (
     <>
+      {showLoader ? <Loader /> : null}
+      <Toaster></Toaster>
       <main className="d-flex flex-column home-wrap">
         <div className="g-top text-light">
           <div className="top-remote-video-show-wrap d-flex">
@@ -1267,7 +1327,7 @@ function MeetingPage({ socket }) {
                   </div>
                 </div>
                 <div
-                  className="g-details-heading-show-attachment"
+                  className="g-details-heading-show-attachment p-2"
                   style={{
                     display: "none",
                     position: "relative",
@@ -1302,6 +1362,7 @@ function MeetingPage({ socket }) {
                       </div>
                       <div className="share-button-wrap">
                         <button
+                          title="Max. 10 MB file can be shared"
                           className="btn btn-primary btn-sm share-attach"
                           style={{ flexBasis: "19%", padding: "6px 20px" }}
                         >
@@ -1383,11 +1444,11 @@ function MeetingPage({ socket }) {
                 style={
                   showRecordingButton
                     ? {
-                        display: "flex",
-                        position: "fixed",
-                        bottom: 110,
-                        right: 0,
-                      }
+                      display: "flex",
+                      position: "fixed",
+                      bottom: 110,
+                      right: 0,
+                    }
                     : { display: "none" }
                 }
               >

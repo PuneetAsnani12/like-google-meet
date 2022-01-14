@@ -287,3 +287,6 @@ a {
 .video-wrap::-webkit-scrollbar-track {
   background-color: transparent;
 }
+.hover-link:hover {
+  text-decoration-line: underline;
+}

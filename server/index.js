@@ -1,7 +1,8 @@
 const express = require("express");
 const path = require("path");
-const fs = require("fs");
-const fileUpload = require("express-fileupload");
+// const fs = require("fs");
+// const cors = require("cors")
+// const fileUpload = require("express-fileupload");
 let app = express();
 
 const PORT = process.env.PORT || 5000;
@@ -13,59 +14,59 @@ let server = app.listen(PORT, () => {
 const io = require("socket.io")(server);
 
 app.use(express.static(path.join(__dirname, "build")));
-
-app.get("/downloadFile", (req, res) => {
-  let filePath = req.query.path;
-  res.download(path.join(__dirname, filePath));
-});
+// app.use(cors())
+// app.get("/downloadFile", (req, res) => {
+//   let filePath = req.query.path;
+//   res.download(path.join(__dirname, filePath));
+// });
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
-app.use(fileUpload());
+// app.use(fileUpload());
 
-app.post("/attachment", (req, res) => {
-  let data = req.body;
-  let imageFile = req.files.zipfile;
+// app.post("/attachment", (req, res) => {
+//   let data = req.body;
+//   let imageFile = req.files.zipfile;
 
-  let dir = "public/attachments/" + data.meeting_id + "/";
-  let systemPath = path.join(__dirname, dir);
+//   let dir = "public/attachments/" + data.meeting_id + "/";
+//   let systemPath = path.join(__dirname, dir);
 
-  if (!fs.existsSync(path.join(__dirname, "public")))
-    fs.mkdirSync(path.join(__dirname, "public"));
-  if (!fs.existsSync(path.join(__dirname, "public/attachments")))
-    fs.mkdirSync(path.join(__dirname, "public/attachments"));
-  if (!fs.existsSync(systemPath)) {
-    fs.mkdirSync(systemPath);
-  }
+//   if (!fs.existsSync(path.join(__dirname, "public")))
+//     fs.mkdirSync(path.join(__dirname, "public"));
+//   if (!fs.existsSync(path.join(__dirname, "public/attachments")))
+//     fs.mkdirSync(path.join(__dirname, "public/attachments"));
+//   if (!fs.existsSync(systemPath)) {
+//     fs.mkdirSync(systemPath);
+//   }
 
-  imageFile.mv(path.join(systemPath, imageFile.name), (err) => {
-    if (err)
-      res
-        .status(500)
-        .send({ status: false, msg: "couldn't upload the image file" });
-    else
-      res
-        .status(200)
-        .send({ status: true, msg: "Image file successfully uploaded" });
-  });
-});
+//   imageFile.mv(path.join(systemPath, imageFile.name), (err) => {
+//     if (err)
+//       res
+//         .status(500)
+//         .send({ status: false, msg: "couldn't upload the image file" });
+//     else
+//       res
+//         .status(200)
+//         .send({ status: true, msg: "Image file successfully uploaded" });
+//   });
+// });
 
 let userConnections = [];
 io.on("connection", (socket) => {
-  console.log("socket id is ", socket.id);
+  // console.log("socket id is ", socket.id);
 
   socket.on("userconnect", (data) => {
     let other_users = userConnections.filter((user) => {
       return user.meeting_id === data.meeting_id;
     });
-    console.log(
-      "userconnect",
-      data.displayName,
-      data.meeting_id,
-      data.photoURL
-    );
+    // console.log(
+    //   "userconnect",
+    //   data.displayName,
+    //   data.meeting_id,
+    //   data.photoURL
+    // );
     userConnections.push({
       connectionId: socket.id,
       user_id: data.displayName,
@@ -95,7 +96,7 @@ io.on("connection", (socket) => {
       });
     });
   });
-  
+
   socket.on("SDPProcess", (data) => {
     socket.to(data.to_connid).emit("SDPProcess", {
       message: data.message,
@@ -119,7 +120,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("fileTransferToOthers", (data) => {
-    let { user_id, meeting_id, attachedFilePath, attachedFileName } = data;
+    let { user_id, meeting_id, attachedFilePath, attachedFileName, uploadedLink } = data;
     let mUser = userConnections.find((user) => user.connectionId === socket.id);
     if (mUser) {
       let meeting_id = mUser.meeting_id;
@@ -131,13 +132,14 @@ io.on("connection", (socket) => {
           meeting_id,
           attachedFilePath,
           attachedFileName,
+          uploadedLink
         });
       });
     }
   });
 
   socket.on("disconnect", () => {
-    console.log("user disconnected");
+    // console.log("user disconnected");
     let disconnectedUser = userConnections.find(
       (user) => user.connectionId === socket.id
     );

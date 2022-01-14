@@ -12,7 +12,8 @@ function Loader() {
         width: "100%",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#0002",
+        backgroundColor: "#0004",
+        zIndex:10
       }}
     >
       <div className="lds-dual-ring"></div>

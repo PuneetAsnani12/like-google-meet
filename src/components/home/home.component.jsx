@@ -7,7 +7,6 @@ import {
   googleSignInStart,
   signOutStart,
 } from "../../redux/user/users.actions";
-import Loader from "../Loader/loader.component";
 import toast, { Toaster } from "react-hot-toast";
 
 const Home = () => {
@@ -54,7 +53,6 @@ const Home = () => {
   };
   return (
     <>
-      {user.loading ? <Loader /> : null}
       <Toaster></Toaster>
       <nav className="navbar-expand-lg">
         <a href={window.location.origin} className="navbar-brand text-dark">
