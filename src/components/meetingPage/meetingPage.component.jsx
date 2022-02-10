@@ -97,7 +97,16 @@ function MeetingPage({ socket }) {
     try {
       let aStream = await navigator.mediaDevices.getUserMedia({
         video: false,
-        audio: true,
+        audio: {
+          autoGainControl: false,
+          channelCount: 2,
+          echoCancellation: true,
+          latency: 0,
+          noiseSuppression: true,
+          sampleRate: 48000,
+          sampleSize: 16,
+          volume: 1.0
+        },
       });
       audio = aStream.getAudioTracks()[0];
       audio.enabled = false;
@@ -409,6 +418,7 @@ function MeetingPage({ socket }) {
         new RTCSessionDescription(message.offer)
       );
       let answer = await peers_connection[from_connid].createAnswer();
+      answer.sdp = answer.sdp.replace('useinbandfec=1', 'useinbandfec=1; stereo=1; maxaveragebitrate=510000');
       await peers_connection[from_connid].setLocalDescription(answer);
       serverProcess(JSON.stringify({ answer }), from_connid);
     } else if (message.icecandidate) {
